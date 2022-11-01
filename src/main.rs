@@ -7,6 +7,8 @@ mod start;
 use start::Start;
 mod create_load;
 use create_load::Create;
+mod pixels;
+use pixels::Pixels;
 
 #[derive(PartialEq, Properties, Default)]
 pub struct Props;
@@ -76,11 +78,14 @@ impl Component for App {
     let send_bmp_callback = Callback::from(move |new_bmp: BMP| {
       send_bmp_process(new_bmp);
     });
+
+    let current_bmp = &self.to_owned().current_bmp;
   
     html! {
-      <div>
+      <div id="main">
         <Start {create_load_callback} />
         <Create {send_bmp_callback} show={self.show_create} />
+        <Pixels current_bmp={current_bmp.clone()} />
       </div>
     }
   }
