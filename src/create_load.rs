@@ -3,6 +3,8 @@ use bmp_rust::bmp::BMP;
 use gloo_utils::document;
 use gloo_console::log;
 use web_sys::HtmlInputElement;
+use gloo::file::callbacks::FileReader;
+use gloo::file::File;
 
 // create
 
@@ -89,3 +91,98 @@ impl Component for Create {
 }
 
 // load
+
+#[derive(PartialEq, Properties)]
+pub struct LoadProps {
+  pub send_bmp_callback: Callback<BMP>,
+  pub show: bool,
+}
+
+pub enum LoadMessage {
+  Show,
+  Hide,
+  GenBMP(File),
+  LoadBMP(BMP),
+}
+
+pub struct Load {
+  display: String,
+  reader: Option<FileReader>,
+  bmp: Option<BMP>,
+}
+
+impl Component for Load {
+  type Message = LoadMessage;
+  type Properties = LoadProps;
+
+  fn create(_ctx: &Context<Self>) -> Self {
+    Self { display: "none".to_string(), reader: None, bmp: None }
+  }
+
+  fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
+    match msg {
+      Self::Message::Hide => {
+        log!("Received");
+        self.display = "none".to_string();
+        true
+      },
+      Self::Message::Show => {
+        self.display = "block".to_string();
+        true
+      },
+      Self::Message::GenBMP(file) => {
+        let link = ctx.link().clone();
+        self.display = "none".to_string();
+        self.reader = Some(gloo::file::callbacks::read_as_bytes(&file, move |res| {
+          log!("Finale");
+          //res.expect("Error reading file as bytes");
+          let mut new_bmp = BMP::new(1, 1);
+          new_bmp.contents = res.unwrap();
+          link.send_message(Self::Message::LoadBMP(new_bmp));
+        }));
+        true
+      }
+      Self::Message::LoadBMP(bmp) => {
+        let _ = ctx.props().send_bmp_callback.emit(bmp);
+        true
+      }
+    }
+  }
+
+  fn view(&self, ctx: &Context<Self>) -> Html {
+    let link = ctx.link().clone();
+
+    if ctx.props().show && self.display == "none".to_string() {
+      link.send_message(Self::Message::Show);
+    }
+
+    let file_input_ref = NodeRef::default();
+    let file_input_ref2 = file_input_ref.clone();
+
+    let file_reader: FileReader;
+
+    let load_bmp_callback = Callback::from(move |_| {
+      log!("Loading");
+      //get height and width
+      let file_input: HtmlInputElement = file_input_ref2.cast().unwrap();
+      let files = file_input.files().unwrap();
+      let link2 = link.clone();
+      log!(files.item(0).unwrap());
+      //convert websys file to gloo file/blob
+      let file = File::from(files.item(0).unwrap());
+      link2.clone().send_message(Self::Message::GenBMP(file));
+    });
+
+    let load_bmp = {
+      load_bmp_callback.clone()
+    };
+  
+    html! {
+      <div style={"display: ".to_string()+&self.display}>
+        <label for="file-upload-initial">{ "File upload:" }</label>
+        <input ref={file_input_ref} id="file-upload-initial" type="file" name="file-upload-initial" accept="image/bmp" multiple={false} />
+        <button onclick={load_bmp}>{ "Load" }</button>
+      </div>
+    }
+  }
+}

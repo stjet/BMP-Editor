@@ -7,6 +7,7 @@ mod start;
 use start::Start;
 mod create_load;
 use create_load::Create;
+use create_load::Load;
 mod pixels;
 use pixels::Pixels;
 
@@ -24,6 +25,7 @@ pub enum AppMessage {
 pub struct App {
   current_bmp: Option<BMP>,
   show_create: bool,
+  show_load: bool,
 }
 
 impl Component for App {
@@ -31,7 +33,7 @@ impl Component for App {
   type Properties = Props;
 
   fn create(_ctx: &Context<Self>) -> Self {
-    Self { current_bmp: None, show_create: false }
+    Self { current_bmp: None, show_create: false, show_load: false }
   }
 
   fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
@@ -42,6 +44,7 @@ impl Component for App {
         true
       },
       Self::Message::Load => {
+        self.show_load = true;
         true
       },
       Self::Message::NewBMP(bmp_inside) => {
@@ -61,7 +64,7 @@ impl Component for App {
       if from_scratch {
         link.send_message(Self::Message::Create);
       } else {
-        //
+        link.send_message(Self::Message::Load);
       }
     };
   
@@ -78,6 +81,7 @@ impl Component for App {
     let send_bmp_callback = Callback::from(move |new_bmp: BMP| {
       send_bmp_process(new_bmp);
     });
+    let send_bmp_callback2 = send_bmp_callback.clone();
 
     let current_bmp = &self.to_owned().current_bmp;
   
@@ -85,6 +89,7 @@ impl Component for App {
       <div id="main">
         <Start {create_load_callback} />
         <Create {send_bmp_callback} show={self.show_create} />
+        <Load send_bmp_callback={send_bmp_callback2} show={self.show_load} />
         <Pixels current_bmp={current_bmp.clone()} />
       </div>
     }
