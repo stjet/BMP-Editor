@@ -35,7 +35,6 @@ impl Component for Create {
   fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
     match msg {
       Self::Message::Hide => {
-        log!("Received");
         self.display = "none".to_string();
         true
       },
@@ -44,6 +43,7 @@ impl Component for Create {
         true
       },
       Self::Message::CreateBMP(height, width) => {
+        ctx.link().clone().send_message(Self::Message::Hide);
         self.display = "none".to_string();
         let _ = ctx.props().send_bmp_callback.emit(BMP::new(height, width));
         true
