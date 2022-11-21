@@ -43,9 +43,8 @@ impl Component for Create {
         true
       },
       Self::Message::CreateBMP(height, width) => {
+        let _ = ctx.props().send_bmp_callback.emit(BMP::new(height, width, None));
         ctx.link().clone().send_message(Self::Message::Hide);
-        self.display = "none".to_string();
-        let _ = ctx.props().send_bmp_callback.emit(BMP::new(height, width));
         true
       }
     }
@@ -122,7 +121,6 @@ impl Component for Load {
   fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
     match msg {
       Self::Message::Hide => {
-        log!("Received");
         self.display = "none".to_string();
         true
       },
@@ -132,13 +130,12 @@ impl Component for Load {
       },
       Self::Message::GenBMP(file) => {
         let link = ctx.link().clone();
-        self.display = "none".to_string();
         self.reader = Some(gloo::file::callbacks::read_as_bytes(&file, move |res| {
-          log!("Finale");
           //res.expect("Error reading file as bytes");
-          let mut new_bmp = BMP::new(1, 1);
+          let mut new_bmp = BMP::new(1, 1, None);
           new_bmp.contents = res.unwrap();
           link.send_message(Self::Message::LoadBMP(new_bmp));
+          link.send_message(Self::Message::Hide);
         }));
         true
       }
@@ -152,6 +149,7 @@ impl Component for Load {
   fn view(&self, ctx: &Context<Self>) -> Html {
     let link = ctx.link().clone();
 
+    //self.reader.is_none() is necessary so the component properly 
     if ctx.props().show && self.display == "none".to_string() {
       link.send_message(Self::Message::Show);
     }
@@ -159,18 +157,19 @@ impl Component for Load {
     let file_input_ref = NodeRef::default();
     let file_input_ref2 = file_input_ref.clone();
 
-    let file_reader: FileReader;
-
     let load_bmp_callback = Callback::from(move |_| {
       log!("Loading");
       //get height and width
       let file_input: HtmlInputElement = file_input_ref2.cast().unwrap();
       let files = file_input.files().unwrap();
       let link2 = link.clone();
-      log!(files.item(0).unwrap());
-      //convert websys file to gloo file/blob
-      let file = File::from(files.item(0).unwrap());
-      link2.clone().send_message(Self::Message::GenBMP(file));
+      if files.item(0).is_some() {
+        log!(files.item(0).unwrap());
+        //convert websys file to gloo file/blob
+        let file = File::from(files.item(0).unwrap());
+        link2.clone().send_message(Self::Message::GenBMP(file));
+        link2.send_message(Self::Message::Hide);
+      }
     });
 
     let load_bmp = {

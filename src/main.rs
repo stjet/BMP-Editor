@@ -52,15 +52,17 @@ impl Component for App {
         true
       },
       Self::Message::NewBMP(bmp_inside) => {
+        log!("new bmp");
         self.show_create = false;
+        self.show_load = false;
         self.current_bmp = Some(bmp_inside);
         true
       },
       Self::Message::PixelClicked(x, y) => {
         self.pixel_click_display = "block".to_string();
-        self.pixel_click_coords = format!("({x}, {y})");
+        self.pixel_click_coords = format!("Coords: ({x}, {y})");
         let pixel_color = self.current_bmp.as_ref().unwrap().clone().get_color_of_px(x as usize, y as usize).unwrap();
-        self.pixel_click_color = format!("({}, {}, {}, {})", pixel_color[0], pixel_color[1], pixel_color[2], pixel_color[3]);
+        self.pixel_click_color = format!("Color: ({}, {}, {}, {})", pixel_color[0], pixel_color[1], pixel_color[2], pixel_color[3]);
         true
       }
     }
