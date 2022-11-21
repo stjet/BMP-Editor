@@ -63,6 +63,7 @@ impl Component for App {
         self.pixel_click_coords = format!("Coords: ({x}, {y})");
         let pixel_color = self.current_bmp.as_ref().unwrap().clone().get_color_of_px(x as usize, y as usize).unwrap();
         self.pixel_click_color = format!("Color: ({}, {}, {}, {})", pixel_color[0], pixel_color[1], pixel_color[2], pixel_color[3]);
+        //change so whole thing doesn't have to rerender
         true
       }
     }
