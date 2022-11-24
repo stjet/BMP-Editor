@@ -10,6 +10,7 @@ use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, Path2d};
 pub struct PixelsProps {
   pub current_bmp: Option<BMP>,
   pub send_pixel_click: Callback<[u16; 2]>,
+  pub should_redraw: bool,
 }
 
 pub enum PixelsMessage {
@@ -156,7 +157,7 @@ impl Component for Pixels {
   fn rendered(&mut self, ctx: &Context<Self>, _first_render: bool) {
     log!("Rendering");
     let canvas: Option<HtmlCanvasElement> = self.canvas_ref.cast();
-    if canvas.is_some() {
+    if canvas.is_some() && ctx.props().should_redraw {
       let canvas: HtmlCanvasElement = canvas.unwrap();
       let context: CanvasRenderingContext2d = canvas.get_context("2d").unwrap().unwrap().dyn_into().unwrap();
       let unwrapped_bmp = ctx.props().current_bmp.as_ref().unwrap();

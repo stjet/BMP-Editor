@@ -10,6 +10,8 @@ use create_load::Create;
 use create_load::Load;
 mod pixels;
 use pixels::Pixels;
+mod pixel_actions;
+use pixel_actions::{PixelActions, PixelInfo};
 
 #[derive(PartialEq, Properties, Default)]
 pub struct Props;
@@ -27,9 +29,9 @@ pub struct App {
   current_bmp: Option<BMP>,
   show_create: bool,
   show_load: bool,
-  pixel_click_display: String,
-  pixel_click_coords: String,
-  pixel_click_color: String,
+  show_pixel_info: bool,
+  should_redraw: bool,
+  pixel_info: Option<PixelInfo>,
 }
 
 impl Component for App {
@@ -37,7 +39,7 @@ impl Component for App {
   type Properties = Props;
 
   fn create(_ctx: &Context<Self>) -> Self {
-    Self { current_bmp: None, show_create: false, show_load: false, pixel_click_display: "none".to_string(), pixel_click_coords: "".to_string(), pixel_click_color: "".to_string() }
+    Self { current_bmp: None, show_create: false, show_load: false, show_pixel_info: false, should_redraw: true, pixel_info: None }
   }
 
   fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
@@ -59,11 +61,14 @@ impl Component for App {
         true
       },
       Self::Message::PixelClicked(x, y) => {
-        self.pixel_click_display = "block".to_string();
-        self.pixel_click_coords = format!("Coords: ({x}, {y})");
+        self.show_pixel_info = true;
         let pixel_color = self.current_bmp.as_ref().unwrap().clone().get_color_of_px(x as usize, y as usize).unwrap();
-        self.pixel_click_color = format!("Color: ({}, {}, {}, {})", pixel_color[0], pixel_color[1], pixel_color[2], pixel_color[3]);
-        //change so whole thing doesn't have to rerender
+        self.pixel_info = Some(PixelInfo {
+          color: pixel_color,
+          coords: [x, y],
+        });
+        //can safely update entire, without having to worry about pixel canvas being redrawn
+        self.should_redraw = false;
         true
       }
     }
@@ -107,21 +112,14 @@ impl Component for App {
     });
 
     let current_bmp = &self.to_owned().current_bmp;
-
-    let pixel_click_coords = self.pixel_click_coords.clone();
-    let pixel_click_color = self.pixel_click_color.clone();
   
     html! {
       <div id="main">
         <Start {create_load_callback} />
         <Create {send_bmp_callback} show={self.show_create} />
         <Load send_bmp_callback={send_bmp_callback2} show={self.show_load} />
-        <Pixels {send_pixel_click} current_bmp={current_bmp.clone()} />
-        <div style={"display: ".to_string()+&self.pixel_click_display+";"}>
-          <span>{pixel_click_coords}</span>
-          <br/>
-          <span>{pixel_click_color}</span>
-        </div>
+        <Pixels {send_pixel_click} current_bmp={current_bmp.clone()} should_redraw={self.should_redraw} />
+        <PixelActions pixel_info={self.pixel_info.clone()} show={self.show_pixel_info} />
       </div>
     }
   }
