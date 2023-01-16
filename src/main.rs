@@ -23,6 +23,8 @@ pub enum AppMessage {
   Load,
   NewBMP(BMP),
   PixelClicked(u16, u16),
+  ChangePixels(Vec<[u16; 2]>, [u8; 4]),
+  ChangeSelectedPixel([u8; 4]),
 }
 
 pub struct App {
@@ -70,7 +72,25 @@ impl Component for App {
         //can safely update entire, without having to worry about pixel canvas being redrawn
         self.should_redraw = false;
         true
-      }
+      },
+      Self::Message::ChangePixels(pixels, color) => {
+        //iterate through pixels and change them
+        let mut current_bmp = self.current_bmp.as_ref().unwrap().clone();
+        current_bmp.change_color_of_pixels(pixels, color).unwrap();
+        self.current_bmp = Some(current_bmp);
+        self.should_redraw = true;
+        true
+      },
+      //vec![self.pixel_info.unwrap().coords], 
+      Self::Message::ChangeSelectedPixel(color) => {
+        //get selected pixel and change the color of it
+        let coord = self.pixel_info.as_ref().unwrap().coords;
+        let mut current_bmp = self.current_bmp.as_ref().unwrap().clone();
+        current_bmp.change_color_of_pixel(coord[0], coord[1], color).unwrap();
+        self.current_bmp = Some(current_bmp);
+        self.should_redraw = true;
+        true
+      },
     }
   }
 
@@ -78,6 +98,7 @@ impl Component for App {
     let link = ctx.link().clone();
     let link2 = ctx.link().clone();
     let link3 = ctx.link().clone();
+    let link4 = ctx.link().clone();
     //let mut from_scratch = false;
 
     let create_load_process = move |from_scratch: bool| {
@@ -111,6 +132,15 @@ impl Component for App {
       pixel_click_process(coords[0], coords[1]);
     });
 
+    //pixel change
+    let change_pixel_process = move |new_color: [u8; 4]| {
+      link4.send_message(Self::Message::ChangeSelectedPixel(new_color));
+    };
+
+    let change_pixel_callback = Callback::from(move |new_color: [u8; 4]| {
+      change_pixel_process(new_color);
+    });
+
     let current_bmp = &self.to_owned().current_bmp;
   
     html! {
@@ -119,7 +149,7 @@ impl Component for App {
         <Create {send_bmp_callback} show={self.show_create} />
         <Load send_bmp_callback={send_bmp_callback2} show={self.show_load} />
         <Pixels {send_pixel_click} current_bmp={current_bmp.clone()} should_redraw={self.should_redraw} />
-        <PixelActions pixel_info={self.pixel_info.clone()} show={self.show_pixel_info} />
+        <PixelActions pixel_info={self.pixel_info.clone()} show={self.show_pixel_info} {change_pixel_callback} />
       </div>
     }
   }

@@ -158,8 +158,11 @@ impl Component for Pixels {
     log!("Rendering");
     let canvas: Option<HtmlCanvasElement> = self.canvas_ref.cast();
     if canvas.is_some() && ctx.props().should_redraw {
+      log!("Redrawing");
       let canvas: HtmlCanvasElement = canvas.unwrap();
       let context: CanvasRenderingContext2d = canvas.get_context("2d").unwrap().unwrap().dyn_into().unwrap();
+      //clear canvas
+      context.clear_rect(0 as f64, 0 as f64, 650 as f64, 650 as f64);
       let unwrapped_bmp = ctx.props().current_bmp.as_ref().unwrap();
       let dib_header = unwrapped_bmp.get_dib_header().unwrap();
       let width;
