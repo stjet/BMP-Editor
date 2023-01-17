@@ -105,7 +105,7 @@ impl Component for Pixels {
         pixel_mousemove_callback.clone()
       };
 
-      let pixel_mouseout_callback = Callback::from(move |e: MouseEvent| {
+      let pixel_mouseout_callback = Callback::from(move |_e: MouseEvent| {
         let canvas: Option<HtmlCanvasElement> = canvas_ref_top2.cast();
         if canvas.is_some() {
           let canvas: HtmlCanvasElement = canvas.unwrap();

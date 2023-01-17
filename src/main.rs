@@ -1,7 +1,6 @@
 use yew::prelude::*;
 use bmp_rust::bmp::BMP;
 use gloo_console::log;
-use wasm_bindgen::JsValue;
 
 mod start;
 use start::Start;
@@ -12,6 +11,8 @@ mod pixels;
 use pixels::Pixels;
 mod pixel_actions;
 use pixel_actions::{PixelActions, PixelInfo};
+mod image_actions;
+use image_actions::ImageActions;
 
 #[derive(PartialEq, Properties, Default)]
 pub struct Props;
@@ -32,6 +33,7 @@ pub struct App {
   show_create: bool,
   show_load: bool,
   show_pixel_info: bool,
+  show_image_actions: bool,
   should_redraw: bool,
   pixel_info: Option<PixelInfo>,
 }
@@ -41,7 +43,7 @@ impl Component for App {
   type Properties = Props;
 
   fn create(_ctx: &Context<Self>) -> Self {
-    Self { current_bmp: None, show_create: false, show_load: false, show_pixel_info: false, should_redraw: true, pixel_info: None }
+    Self { current_bmp: None, show_create: false, show_load: false, show_pixel_info: false, show_image_actions: false, should_redraw: true, pixel_info: None }
   }
 
   fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
@@ -59,6 +61,7 @@ impl Component for App {
         log!("new bmp");
         self.show_create = false;
         self.show_load = false;
+        self.show_image_actions = true;
         self.current_bmp = Some(bmp_inside);
         true
       },
@@ -148,6 +151,7 @@ impl Component for App {
         <Start {create_load_callback} />
         <Create {send_bmp_callback} show={self.show_create} />
         <Load send_bmp_callback={send_bmp_callback2} show={self.show_load} />
+        <ImageActions current_bmp={current_bmp.clone()} show={self.show_image_actions} />
         <Pixels {send_pixel_click} current_bmp={current_bmp.clone()} should_redraw={self.should_redraw} />
         <PixelActions pixel_info={self.pixel_info.clone()} show={self.show_pixel_info} {change_pixel_callback} />
       </div>

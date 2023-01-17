@@ -1,6 +1,6 @@
 use yew::prelude::*;
 use web_sys::HtmlInputElement;
-use gloo_console::log;
+//use gloo_console::log;
 
 //info and actions of a specific pixel
 //coords, color, in future: option to change color
