@@ -1,11 +1,10 @@
 use yew::prelude::*;
 use bmp_rust::bmp::BMP;
-use gloo_utils::document;
 use gloo_console::log;
 use web_sys::HtmlInputElement;
 use gloo::file::callbacks::FileReader;
 use gloo::file::File;
-
+//use gloo_utils::document;
 // create
 
 #[derive(PartialEq, Properties)]
@@ -81,8 +80,10 @@ impl Component for Create {
       <div style={"display: ".to_string()+&self.display}>
         <label for="height">{ "Height:" }</label>
         <input ref={h_input_ref} id="height" type="number" name="height" min="1" max="4200" value="10"/>
+        <br class="mobile-only"/>
         <label for="width">{ "Width:" }</label>
         <input ref={w_input_ref}  id="width" type="number" name="width" min="1" max="4200" value="10"/>
+        <br class="mobile-only"/>
         <button onclick={create_bmp}>{ "Create" }</button>
       </div>
     }

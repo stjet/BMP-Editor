@@ -13,6 +13,8 @@ mod pixel_actions;
 use pixel_actions::{PixelActions, PixelInfo};
 mod image_actions;
 use image_actions::ImageActions;
+mod tools;
+use tools::{Tools, ToolsTypes};
 
 #[derive(PartialEq, Properties, Default)]
 pub struct Props;
@@ -26,10 +28,15 @@ pub enum AppMessage {
   PixelClicked(u16, u16),
   ChangePixels(Vec<[u16; 2]>, [u8; 4]),
   ChangeSelectedPixel([u8; 4]),
+  ToolSelected(ToolsTypes),
+  FillBucket([u8; 4]),
+  ChangeToolColor([u8; 4]),
 }
 
 pub struct App {
   current_bmp: Option<BMP>,
+  selected_tool: ToolsTypes,
+  tool_color: [u8; 4],
   show_create: bool,
   show_load: bool,
   show_pixel_info: bool,
@@ -43,10 +50,11 @@ impl Component for App {
   type Properties = Props;
 
   fn create(_ctx: &Context<Self>) -> Self {
-    Self { current_bmp: None, show_create: false, show_load: false, show_pixel_info: false, show_image_actions: false, should_redraw: true, pixel_info: None }
+    Self { current_bmp: None, selected_tool: ToolsTypes::NoneSelected, tool_color: [255, 255, 255, 255], show_create: false, show_load: false, show_pixel_info: false, show_image_actions: false, should_redraw: true, pixel_info: None }
   }
 
-  fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+  fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
+    let link = ctx.link().clone();
     match msg {
       Self::Message::Create => {
         //Create
@@ -72,6 +80,17 @@ impl Component for App {
           color: pixel_color,
           coords: [x, y],
         });
+        match self.selected_tool {
+          ToolsTypes::ClickFill => {
+            link.send_message(Self::Message::ChangeSelectedPixel(self.tool_color));
+          },
+          ToolsTypes::BucketFill => {
+            link.send_message(Self::Message::FillBucket(self.tool_color));
+          },
+          ToolsTypes::NoneSelected => {
+            //do nothing
+          },
+        }
         //can safely update entire, without having to worry about pixel canvas being redrawn
         self.should_redraw = false;
         true
@@ -94,6 +113,25 @@ impl Component for App {
         self.should_redraw = true;
         true
       },
+      Self::Message::FillBucket(color) => {
+        //get selected pixel and fill paint bucket
+        let coord = self.pixel_info.as_ref().unwrap().coords;
+        let mut current_bmp = self.current_bmp.as_ref().unwrap().clone();
+        current_bmp.fill_bucket(color, coord[0] as usize, coord[1] as usize).unwrap();
+        self.current_bmp = Some(current_bmp);
+        self.should_redraw = true;
+        true
+      },
+      Self::Message::ToolSelected(tool) => {
+        self.selected_tool = tool;
+        self.should_redraw = false;
+        true
+      },
+      Self::Message::ChangeToolColor(color) => {
+        self.tool_color = color;
+        self.should_redraw = false;
+        false
+      },
     }
   }
 
@@ -102,6 +140,8 @@ impl Component for App {
     let link2 = ctx.link().clone();
     let link3 = ctx.link().clone();
     let link4 = ctx.link().clone();
+    let link5 = ctx.link().clone();
+    let link6 = ctx.link().clone();
     //let mut from_scratch = false;
 
     let create_load_process = move |from_scratch: bool| {
@@ -144,6 +184,23 @@ impl Component for App {
       change_pixel_process(new_color);
     });
 
+    //tools
+    let tool_change_process = move |tool: ToolsTypes| {
+      link5.send_message(Self::Message::ToolSelected(tool));
+    };
+
+    let tool_change_callback = Callback::from(move |tool: ToolsTypes| {
+      tool_change_process(tool);
+    });
+
+    let change_tool_color_process = move |color: [u8; 4]| {
+      link6.send_message(Self::Message::ChangeToolColor(color));
+    };
+
+    let change_tool_color_callback = Callback::from(move |color: [u8; 4]| {
+      change_tool_color_process(color);
+    });
+
     let current_bmp = &self.to_owned().current_bmp;
   
     html! {
@@ -151,7 +208,8 @@ impl Component for App {
         <Start {create_load_callback} />
         <Create {send_bmp_callback} show={self.show_create} />
         <Load send_bmp_callback={send_bmp_callback2} show={self.show_load} />
-        <ImageActions current_bmp={current_bmp.clone()} show={self.show_image_actions} />
+        <ImageActions current_bmp={current_bmp.clone()} show={self.show_image_actions} {tool_change_callback} />
+        <Tools selected_tool={self.selected_tool} {change_tool_color_callback} tool_color={self.tool_color} show={self.show_image_actions} />
         <Pixels {send_pixel_click} current_bmp={current_bmp.clone()} should_redraw={self.should_redraw} />
         <PixelActions pixel_info={self.pixel_info.clone()} show={self.show_pixel_info} {change_pixel_callback} />
       </div>

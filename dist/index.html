@@ -1,6 +1,7 @@
 <!DOCTYPE html><html><head>
     <meta charset="utf-8">
     <title>BMP Editor</title>
+    <meta name="viewport" content="width=device-width">
     <style>
       html, body {
         height: 100%;
@@ -10,20 +11,33 @@
         box-sizing: border-box;
         padding: 5px;
       }
-      #main {
-        height: 98%;
-        width: 98%;
-      }
       #top-pixels {
-        position: relative;
-        left: -650px;
+        position: absolute;
+        margin-left: -650px;
+      }
+      #tools {
+        width: 30vw;
+        float: right;
+      }
+      .mobile-only {
+        display: none;
+      }
+
+      @media (max-width: 1100px) {
+        #tools {
+          width: auto;
+          float: none;
+        }
+        .mobile-only {
+          display: block;
+        }
       }
     </style>
   
-<link rel="preload" href="/bmp-editor-9b7acaeed1b4d5c5_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
-<link rel="modulepreload" href="/bmp-editor-9b7acaeed1b4d5c5.js"></head>
+<link rel="preload" href="/bmp-editor-3e761b8326d6843e_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
+<link rel="modulepreload" href="/bmp-editor-3e761b8326d6843e.js"></head>
   <body>
-<script type="module">import init from '/bmp-editor-9b7acaeed1b4d5c5.js';init('/bmp-editor-9b7acaeed1b4d5c5_bg.wasm');</script><script>(function () {
+<script type="module">import init from '/bmp-editor-3e761b8326d6843e.js';init('/bmp-editor-3e761b8326d6843e_bg.wasm');</script><script>(function () {
     var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     var url = protocol + '//' + window.location.host + '/_trunk/ws';
     var poll_interval = 5000;
