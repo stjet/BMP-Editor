@@ -72,6 +72,9 @@ impl Component for ImageActions {
         "bucket-fill" => {
           tool_type = ToolsTypes::BucketFill;
         },
+        "invert" => {
+          tool_type = ToolsTypes::Invert;
+        },
         _ => {
           tool_type = ToolsTypes::NoneSelected;
         }
@@ -115,6 +118,7 @@ impl Component for ImageActions {
           <option value={"none-selected"} selected={true}>{ "-- Tools --" }</option>
           <option value={"click-fill"}>{ "Click Fill" }</option>
           <option value={"bucket-fill"}>{ "Bucket Fill" }</option>
+          <option value={"invert"}>{ "Invert" }</option>
         </select>
         <button onclick={download} class={"image-actions"}>{ "Download" }</button>
         <br/>

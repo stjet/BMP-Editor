@@ -31,6 +31,7 @@ pub enum AppMessage {
   ToolSelected(ToolsTypes),
   FillBucket([u8; 4]),
   ChangeToolColor([u8; 4]),
+  Filter(String),
 }
 
 pub struct App {
@@ -87,7 +88,7 @@ impl Component for App {
           ToolsTypes::BucketFill => {
             link.send_message(Self::Message::FillBucket(self.tool_color));
           },
-          ToolsTypes::NoneSelected => {
+          _ => {
             //do nothing
           },
         }
@@ -132,6 +133,17 @@ impl Component for App {
         self.should_redraw = false;
         false
       },
+      Self::Message::Filter(filter_type) => {
+        if filter_type == "invert" {
+          let mut current_bmp = self.current_bmp.as_ref().unwrap().clone();
+          current_bmp.invert(None).unwrap();
+          self.current_bmp = Some(current_bmp);
+          self.should_redraw = true;
+          true
+        } else {
+          false
+        }
+      },
     }
   }
 
@@ -142,6 +154,7 @@ impl Component for App {
     let link4 = ctx.link().clone();
     let link5 = ctx.link().clone();
     let link6 = ctx.link().clone();
+    let link7 = ctx.link().clone();
     //let mut from_scratch = false;
 
     let create_load_process = move |from_scratch: bool| {
@@ -201,6 +214,14 @@ impl Component for App {
       change_tool_color_process(color);
     });
 
+    let filter_process = move |filter_type: String| {
+      link7.send_message(Self::Message::Filter(filter_type));
+    };
+
+    let filter_callback = Callback::from(move |filter_type: String| {
+      filter_process(filter_type);
+    });
+
     let current_bmp = &self.to_owned().current_bmp;
   
     html! {
@@ -209,7 +230,7 @@ impl Component for App {
         <Create {send_bmp_callback} show={self.show_create} />
         <Load send_bmp_callback={send_bmp_callback2} show={self.show_load} />
         <ImageActions current_bmp={current_bmp.clone()} show={self.show_image_actions} {tool_change_callback} />
-        <Tools selected_tool={self.selected_tool} {change_tool_color_callback} tool_color={self.tool_color} show={self.show_image_actions} />
+        <Tools selected_tool={self.selected_tool} {change_tool_color_callback} {filter_callback} tool_color={self.tool_color} show={self.show_image_actions} />
         <Pixels {send_pixel_click} current_bmp={current_bmp.clone()} should_redraw={self.should_redraw} />
         <PixelActions pixel_info={self.pixel_info.clone()} show={self.show_pixel_info} {change_pixel_callback} />
       </div>
