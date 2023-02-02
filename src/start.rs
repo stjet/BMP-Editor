@@ -76,7 +76,7 @@ impl Component for Start {
     };
   
     html! {
-      <div style={"display: ".to_string()+&self.display}>
+      <div id="start" style={"display: ".to_string()+&self.display}>
         <button onclick={create_new}>{ "Create New" }</button>
         <button onclick={load_from_file}>{ "Load from File" }</button>
       </div>

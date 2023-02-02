@@ -112,7 +112,7 @@ impl Component for ImageActions {
     };
 
     html! {
-      <div style={"display: ".to_string()+&self.display}>
+      <div id={"image-actions-container"} style={"display: ".to_string()+&self.display}>
         <a ref={download_ref}></a>
         <select class={"image-actions"} onchange={select}>
           <option value={"none-selected"} selected={true}>{ "-- Tools --" }</option>

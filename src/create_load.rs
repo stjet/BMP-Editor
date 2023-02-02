@@ -181,6 +181,7 @@ impl Component for Load {
       <div style={"display: ".to_string()+&self.display}>
         <label for="file-upload-initial">{ "File upload:" }</label>
         <input ref={file_input_ref} id="file-upload-initial" type="file" name="file-upload-initial" accept="image/bmp" multiple={false} />
+        <br class="mobile-only"/>
         <button onclick={load_bmp}>{ "Load" }</button>
       </div>
     }

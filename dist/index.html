@@ -3,21 +3,46 @@
     <title>BMP Editor</title>
     <meta name="viewport" content="width=device-width">
     <style>
+      * {
+        font-family: Consolas, "Lucida Console", Monaco, monospace;
+      }
       html, body {
         height: 100%;
         width: 100%;
-        margin: 0%;
+        margin: 0;
+        padding: 0;
         /*border-box includes padding in height and width*/
         box-sizing: border-box;
+      }
+      #main {
         padding: 5px;
+      }
+      #image-actions-container {
+        margin-bottom: 5px;
+      }
+      button, select {
+        background-color: #E9E9ED;
+        border: 1px solid #474747;
+        border-radius: 4px;
+      }
+      button:hover, select:hover {
+        background-color: #D0D0D7;
+        border: 1px solid #292929;
+      }
+      #image-actions-container > select, #image-actions-container > button, #start > button {
+        margin-right: 5px;
       }
       #top-pixels {
         position: absolute;
-        margin-left: -650px;
+        /* it should be -650px, but that is off by 4 pixels, so hardcoded to -654px */
+        margin-top: -654px;
       }
       #tools {
         width: 30vw;
         float: right;
+      }
+      #height, #width {
+        margin-right: 5px;
       }
       .mobile-only {
         display: none;
@@ -34,10 +59,11 @@
       }
     </style>
   
-<link rel="preload" href="/bmp-editor-874950f4c3900470_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
-<link rel="modulepreload" href="/bmp-editor-874950f4c3900470.js"></head>
+<link rel="preload" href="/bmp-editor-b52d26dfc3313e35_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
+<link rel="modulepreload" href="/bmp-editor-b52d26dfc3313e35.js"></head>
   <body>
-<script type="module">import init from '/bmp-editor-874950f4c3900470.js';init('/bmp-editor-874950f4c3900470_bg.wasm');</script><script>(function () {
+  
+<script type="module">import init from '/bmp-editor-b52d26dfc3313e35.js';init('/bmp-editor-b52d26dfc3313e35_bg.wasm');</script><script>(function () {
     var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     var url = protocol + '//' + window.location.host + '/_trunk/ws';
     var poll_interval = 5000;

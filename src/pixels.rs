@@ -144,6 +144,7 @@ impl Component for Pixels {
       html! {
         <div style={"display: ".to_string()+&self.display}>
           <canvas id="pixels" width="650" height="650" ref={self.canvas_ref.clone()}></canvas>
+          <br/>
           <canvas id="top-pixels" width="650" height="650" ref={self.canvas_ref_top.clone()} onclick={pixel_click} onmousemove={pixel_mousemove} onmouseout={pixel_mouseout}></canvas>
         </div>
       }
