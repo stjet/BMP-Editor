@@ -32,6 +32,9 @@ pub enum AppMessage {
   FillBucket([u8; 4]),
   ChangeToolColor([u8; 4]),
   Filter(String),
+  DrawLine([[u16; 2]; 2]),
+  DrawRect([[u16; 2]; 2]),
+  DrawEllipse([[u16; 2]; 2]),
 }
 
 pub struct App {
@@ -144,6 +147,27 @@ impl Component for App {
           false
         }
       },
+      Self::Message::DrawLine(endpoints) => {
+        let mut current_bmp = self.current_bmp.as_ref().unwrap().clone();
+        current_bmp.draw_line(self.tool_color, endpoints[0], endpoints[1]).unwrap();
+        self.current_bmp = Some(current_bmp);
+        self.should_redraw = true;
+        true
+      },
+      Self::Message::DrawRect(endpoints) => {
+        let mut current_bmp = self.current_bmp.as_ref().unwrap().clone();
+        current_bmp.draw_rectangle(Some(self.tool_color), Some(self.tool_color), endpoints[0], endpoints[1]).unwrap();
+        self.current_bmp = Some(current_bmp);
+        self.should_redraw = true;
+        true
+      },
+      Self::Message::DrawEllipse(ellipse_args) => {
+        let mut current_bmp = self.current_bmp.as_ref().unwrap().clone();
+        current_bmp.draw_ellipse(ellipse_args[0], ellipse_args[1][0], ellipse_args[1][1], self.tool_color, Some(self.tool_color), true).unwrap();
+        self.current_bmp = Some(current_bmp);
+        self.should_redraw = true;
+        true
+      }
     }
   }
 
@@ -155,6 +179,9 @@ impl Component for App {
     let link5 = ctx.link().clone();
     let link6 = ctx.link().clone();
     let link7 = ctx.link().clone();
+    let link8 = ctx.link().clone();
+    let link9 = ctx.link().clone();
+    let link10 = ctx.link().clone();
     //let mut from_scratch = false;
 
     let create_load_process = move |from_scratch: bool| {
@@ -222,6 +249,30 @@ impl Component for App {
       filter_process(filter_type);
     });
 
+    let rect_process = move |endpoints: [[u16; 2]; 2]| {
+      link8.send_message(Self::Message::DrawRect(endpoints));
+    };
+
+    let rect_callback = Callback::from(move |endpoints: [[u16; 2]; 2]| {
+      rect_process(endpoints);
+    });
+
+    let line_process = move |endpoints: [[u16; 2]; 2]| {
+      link9.send_message(Self::Message::DrawLine(endpoints));
+    };
+
+    let line_callback = Callback::from(move |endpoints: [[u16; 2]; 2]| {
+      line_process(endpoints);
+    });
+
+    let ellipse_process = move |ellipse_args: [[u16; 2]; 2]| {
+      link10.send_message(Self::Message::DrawEllipse(ellipse_args));
+    };
+
+    let ellipse_callback = Callback::from(move |ellipse_args: [[u16; 2]; 2]| {
+      ellipse_process(ellipse_args);
+    });
+
     let current_bmp = &self.to_owned().current_bmp;
   
     html! {
@@ -230,7 +281,7 @@ impl Component for App {
         <Create {send_bmp_callback} show={self.show_create} />
         <Load send_bmp_callback={send_bmp_callback2} show={self.show_load} />
         <ImageActions current_bmp={current_bmp.clone()} show={self.show_image_actions} {tool_change_callback} />
-        <Tools selected_tool={self.selected_tool} {change_tool_color_callback} {filter_callback} tool_color={self.tool_color} show={self.show_image_actions} />
+        <Tools selected_tool={self.selected_tool} {change_tool_color_callback} {filter_callback} {line_callback} {rect_callback} {ellipse_callback} tool_color={self.tool_color} show={self.show_image_actions} />
         <Pixels {send_pixel_click} current_bmp={current_bmp.clone()} should_redraw={self.should_redraw} />
         <PixelActions pixel_info={self.pixel_info.clone()} show={self.show_pixel_info} {change_pixel_callback} />
       </div>

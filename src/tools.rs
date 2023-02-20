@@ -10,6 +10,9 @@ pub enum ToolsTypes {
   ClickFill,
   BucketFill,
   Invert,
+  Line,
+  Rect,
+  Ellipse,
 }
 
 #[derive(PartialEq, Properties)]
@@ -17,6 +20,9 @@ pub struct ToolsProps {
   pub selected_tool: ToolsTypes,
   pub change_tool_color_callback: Callback<[u8; 4]>,
   pub filter_callback: Callback<String>,
+  pub line_callback: Callback<[[u16; 2]; 2]>,
+  pub rect_callback: Callback<[[u16; 2]; 2]>,
+  pub ellipse_callback: Callback<[[u16; 2]; 2]>,
   pub tool_color: [u8; 4],
   pub show: bool,
 }
@@ -25,6 +31,9 @@ pub enum ToolsMessage {
   Show,
   Hide,
   Filter(String),
+  Line([[u16; 2]; 2]),
+  Rect([[u16; 2]; 2]),
+  Ellipse([[u16; 2]; 2]),
   ChangeToolColor([u8; 4]),
 }
 
@@ -54,6 +63,18 @@ impl Component for Tools {
         let _ = ctx.props().filter_callback.emit(filter_type);
         true
       },
+      Self::Message::Line(endpoints) => {
+        let _ = ctx.props().line_callback.emit(endpoints);
+        true
+      },
+      Self::Message::Rect(endpoints) => {
+        let _ = ctx.props().rect_callback.emit(endpoints);
+        true
+      },
+      Self::Message::Ellipse(ellipse_args) => {
+        let _ = ctx.props().ellipse_callback.emit(ellipse_args);
+        true
+      }
       Self::Message::ChangeToolColor(color) => {
         //run callback of parent
         let _ = ctx.props().change_tool_color_callback.emit(color);
@@ -66,6 +87,8 @@ impl Component for Tools {
     let link = ctx.link().clone();
     let link2 = ctx.link().clone();
     let link3 = ctx.link().clone();
+    let link4 = ctx.link().clone();
+    let link5 = ctx.link().clone();
 
     if self.display == "none".to_string() && ctx.props().show {
       link.send_message(Self::Message::Show);
@@ -75,14 +98,30 @@ impl Component for Tools {
 
     let tc_input_ref = NodeRef::default();
     let tc_input_ref2 = tc_input_ref.clone();
+
+    let first_endpoint_ref = NodeRef::default();
+    let first_endpoint_ref2 = first_endpoint_ref.clone();
+    let second_endpoint_ref = NodeRef::default();
+    let second_endpoint_ref2 = second_endpoint_ref.clone();
+
+    let center_input_ref = NodeRef::default();
+    let center_input_ref2 = center_input_ref.clone();
+    let xlength_input_ref = NodeRef::default();
+    let xlength_input_ref2 = xlength_input_ref.clone();
+    let ylength_input_ref = NodeRef::default();
+    let ylength_input_ref2 = ylength_input_ref.clone();
     
     let mut selected_tool_name: String = "Selected Tool: ".to_string();
     let selected_tool_info: String;
 
     let mut color_picker_display: String = "none".to_string();
     let mut invert_button_display: String = "none".to_string();
+    let mut end_points_display: String = "none".to_string();
+    let mut ellipse_display: String = "none".to_string();
+
+    let selected_tool = ctx.props().selected_tool;
     
-    match ctx.props().selected_tool {
+    match selected_tool {
       ToolsTypes::ClickFill => {
         selected_tool_name += "Click Fill";
         selected_tool_info = "Click a pixel to change it's fill to the currently selected color.".to_string();
@@ -97,6 +136,24 @@ impl Component for Tools {
         selected_tool_name += "Invert";
         selected_tool_info = "Click the button below to invert the image colors.".to_string();
         invert_button_display = "block".to_string();
+      },
+      ToolsTypes::Line => {
+        selected_tool_name += "Line";
+        selected_tool_info = "Specify endpoint coordinates and color to create a line.".to_string();
+        end_points_display = "block".to_string();
+        color_picker_display = "block".to_string();
+      },
+      ToolsTypes::Rect => {
+        selected_tool_name += "Rect";
+        selected_tool_info = "Specify endpoint coordinates and color to create a rectangle.".to_string();
+        end_points_display = "block".to_string();
+        color_picker_display = "block".to_string();
+      },
+      ToolsTypes::Ellipse => {
+        selected_tool_name += "Ellipse";
+        selected_tool_info = "Specify coordinates, lengths, colors, and create a ellipse.".to_string();
+        ellipse_display = "block".to_string();
+        color_picker_display = "block".to_string();
       },
       ToolsTypes::NoneSelected => {
         selected_tool_name += "None Selected";
@@ -127,6 +184,43 @@ impl Component for Tools {
     let invert = {
       invert_callback.clone()
     };
+
+    //ellipse display needs center, xlength, ylength
+
+    let create_callback = Callback::from(move |_| {
+      let first_endpoint_input: HtmlInputElement = first_endpoint_ref2.clone().cast().unwrap();
+      let first_endpoint_vec: Vec<u16> = first_endpoint_input.value().replace("(", "").replace(")", "").split(", ").map(|value| value.parse::<u16>().unwrap()).collect();
+      let first_endpoint: [u16; 2] = [first_endpoint_vec[0], first_endpoint_vec[1]];
+      let second_endpoint_input: HtmlInputElement = second_endpoint_ref2.clone().cast().unwrap();
+      let second_endpoint_vec: Vec<u16> = second_endpoint_input.value().replace("(", "").replace(")", "").split(", ").map(|value| value.parse::<u16>().unwrap()).collect();
+      let second_endpoint: [u16; 2] = [second_endpoint_vec[0], second_endpoint_vec[1]];
+      let endpoints: [[u16; 2]; 2] = [first_endpoint, second_endpoint];
+      if let ToolsTypes::Line = selected_tool {
+        link4.send_message(Self::Message::Line(endpoints));
+      }
+      if let ToolsTypes::Rect = selected_tool {
+        link4.send_message(Self::Message::Rect(endpoints));
+      }
+    });
+
+    let create = {
+      create_callback.clone()
+    };
+
+    let ellipse_callback = Callback::from(move |_| {
+      let center_input: HtmlInputElement = center_input_ref2.clone().cast().unwrap();
+      let center_input_vec: Vec<u16> = center_input.value().replace("(", "").replace(")", "").split(", ").map(|value| value.parse::<u16>().unwrap()).collect();
+      let xlength_input: HtmlInputElement = xlength_input_ref2.clone().cast().unwrap();
+      let xlength: u16 = xlength_input.value().parse().unwrap();
+      let ylength_input: HtmlInputElement = ylength_input_ref2.clone().cast().unwrap();
+      let ylength: u16 = ylength_input.value().parse().unwrap();
+      let ellipse_args: [[u16; 2]; 2] = [[center_input_vec[0], center_input_vec[1]], [xlength, ylength]];
+      link5.send_message(Self::Message::Ellipse(ellipse_args));
+    });
+
+    let ellipse = {
+      ellipse_callback.clone()
+    };
   
     html! {
       <div id={"tools"} style={"display: ".to_string()+&self.display}>
@@ -137,6 +231,27 @@ impl Component for Tools {
             <label for="tool-color">{"Color: "}</label>
             <input name="tool-color" value={color_text} ref={tc_input_ref}/>
             <button onclick={new_tool_color}>{ "Change" }</button>
+          </div>
+          <div style={"display: ".to_string()+&ellipse_display}>
+            <label for="center">{"Center: "}</label>
+            <input name="center" placeholder="(0, 0)" ref={center_input_ref}/>
+            <br/>
+            <label for="x-length">{"X Length: "}</label>
+            <input name="x-length" ref={xlength_input_ref}/>
+            <br/>
+            <label for="y-length">{"Y Length: "}</label>
+            <input name="y-length" ref={ylength_input_ref}/>
+            <br/>
+            <button onclick={ellipse}>{ "Create" }</button>
+          </div>
+          <div style={"display: ".to_string()+&end_points_display}>
+            <label for="first-endpoint">{"First Endpoint: "}</label>
+            <input name="first-endpoint" placeholder="(0, 0)" ref={first_endpoint_ref}/>
+            <br/>
+            <label for="second-endpoint">{"First Endpoint: "}</label>
+            <input name="second-endpoint" placeholder="(0, 0)" ref={second_endpoint_ref}/>
+            <br/>
+            <button onclick={create}>{ "Create" }</button>
           </div>
           <div style={"display: ".to_string()+&invert_button_display}>
             <button onclick={invert}>{ "Invert" }</button>

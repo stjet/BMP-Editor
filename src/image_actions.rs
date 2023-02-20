@@ -58,8 +58,10 @@ impl Component for ImageActions {
       link.send_message(Self::Message::Hide);
     }
 
-    let download_ref = NodeRef::default();
-    let download_ref_2 = download_ref.clone();
+    let fills_ref = NodeRef::default();
+    let fills_ref_2 = fills_ref.clone();
+    let shapes_ref = NodeRef::default();
+    let shapes_ref_2 = shapes_ref.clone();
 
     let select_callback = Callback::from(move |e: Event| {
       let select: HtmlSelectElement = e.target_unchecked_into();
@@ -75,6 +77,15 @@ impl Component for ImageActions {
         "invert" => {
           tool_type = ToolsTypes::Invert;
         },
+        "line" => {
+          tool_type = ToolsTypes::Line;
+        },
+        "rect" => {
+          tool_type = ToolsTypes::Rect;
+        },
+        "ellipse" => {
+          tool_type = ToolsTypes::Ellipse;
+        },
         _ => {
           tool_type = ToolsTypes::NoneSelected;
         }
@@ -82,11 +93,34 @@ impl Component for ImageActions {
       link2.send_message(Self::Message::ToolChange(tool_type));
     });
 
-    let select = {
-      select_callback.clone()
+    let select_callback2 = select_callback.clone();
+
+    let fills_callback = Callback::from(move |e: Event| {
+      let shapes_select: HtmlSelectElement = shapes_ref_2.cast().unwrap();
+      //set shapes callback value to non selected
+      shapes_select.set_value("none-selected");
+      select_callback.emit(e);
+    });
+
+    let fills = {
+      fills_callback.clone()
+    };
+
+    let shapes_callback = Callback::from(move |e: Event| {
+      let fills_select: HtmlSelectElement = fills_ref_2.cast().unwrap();
+      //set fills callback value to non selected
+      fills_select.set_value("none-selected");
+      select_callback2.emit(e);
+    });
+
+    let shapes = {
+      shapes_callback.clone()
     };
 
     let contents = ctx.clone().props().clone().current_bmp.as_ref().unwrap_or(&BMP::new(1, 1, None)).contents.to_owned();
+
+    let download_ref = NodeRef::default();
+    let download_ref_2 = download_ref.clone();
 
     let download_callback = Callback::from(move |_| {
       //create blob
@@ -114,11 +148,17 @@ impl Component for ImageActions {
     html! {
       <div id={"image-actions-container"} style={"display: ".to_string()+&self.display}>
         <a ref={download_ref}></a>
-        <select class={"image-actions"} onchange={select}>
-          <option value={"none-selected"} selected={true}>{ "-- Tools --" }</option>
+        <select ref={fills_ref} class={"image-actions"} onchange={fills}>
+          <option value={"none-selected"} selected={true}>{ "-- Fills --" }</option>
           <option value={"click-fill"}>{ "Click Fill" }</option>
           <option value={"bucket-fill"}>{ "Bucket Fill" }</option>
           <option value={"invert"}>{ "Invert" }</option>
+        </select>
+        <select ref={shapes_ref} class={"image-actions"} onchange={shapes}>
+          <option value={"none-selected"} selected={true}>{ "-- Shapes --" }</option>
+          <option value={"line"}>{ "Line" }</option>
+          <option value={"rect"}>{ "Rectangle" }</option>
+          <option value={"ellipse"}>{ "Ellipse" }</option>
         </select>
         <button onclick={download} class={"image-actions"}>{ "Download" }</button>
         <br/>

@@ -62,16 +62,15 @@ impl Component for Pixels {
 
       //let pixels_all: Vec<Path2d> = self.pixels_all.clone();
 
-      let current_bmp = ctx.props().current_bmp.clone();
-      let current_bmp2 = ctx.props().current_bmp.clone();
+      let current_bmp = ctx.props().current_bmp.clone().unwrap();
+      let current_bmp2 = ctx.props().current_bmp.clone().unwrap();
       let canvas_ref_top = self.canvas_ref_top.clone();
       let canvas_ref_top2 = self.canvas_ref_top.clone();
 
       let pixel_mousemove_callback = Callback::from(move |e: MouseEvent| {
         let canvas: Option<HtmlCanvasElement> = canvas_ref_top.cast();
         if canvas.is_some() {
-          let unwrapped_bmp = current_bmp.as_ref().unwrap();
-          let dib_header = unwrapped_bmp.get_dib_header().unwrap();
+          let dib_header = &current_bmp.get_dib_header().unwrap();
           let width = dib_header.width;
           let height = dib_header.height.abs() as u32;
           let pixel_wh;
@@ -119,8 +118,7 @@ impl Component for Pixels {
       };
       
       let pixel_click_callback = Callback::from(move |e: MouseEvent| {
-        let unwrapped_bmp = current_bmp2.as_ref().unwrap();
-        let dib_header = unwrapped_bmp.get_dib_header().unwrap();
+        let dib_header = &current_bmp2.get_dib_header().unwrap();
         let width = dib_header.width;
         let height = dib_header.height.abs() as u32;
         let pixel_wh;
