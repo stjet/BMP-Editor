@@ -64,24 +64,21 @@ impl Component for PixelActions {
 
     if ctx.props().pixel_info.is_some() {
       let pc_input_ref = NodeRef::default();
-      let pc_input_ref2 = pc_input_ref.clone();
       let pixel_info = ctx.props().pixel_info.as_ref().unwrap();
       let pixel_click_coords = pixel_info.coords.clone();
       let pixel_click_color = pixel_info.color.clone();
       let color_text = format!("({}, {}, {}, {})", pixel_click_color[0], pixel_click_color[1], pixel_click_color[2], pixel_click_color[3]);
       let coords_text = format!("Coords: ({}, {})", pixel_click_coords[0], pixel_click_coords[1]);
-      
-      let new_pixel_callback = Callback::from(move |_| {
-        //get new pixel color
-        let pc_input: HtmlInputElement = pc_input_ref2.clone().cast().unwrap();
-        let new_color_vec: Vec<u8> = pc_input.value().replace("(", "").replace(")", "").split(", ").map(|value| value.parse::<u8>().unwrap()).collect();
-        let new_color: [u8; 4] = [new_color_vec[0], new_color_vec[1], new_color_vec[2], new_color_vec[3]];
-        let link2 = link.clone();
-        link2.send_message(Self::Message::ChangePixel(new_color));
-      });
   
       let new_pixel = {
-        new_pixel_callback.clone()
+        let pc_input_ref2 = pc_input_ref.clone();
+        ctx.link().callback(move |_| {
+          //get new pixel color
+          let pc_input: HtmlInputElement = pc_input_ref2.cast().unwrap();
+          let new_color_vec: Vec<u8> = pc_input.value().replace("(", "").replace(")", "").split(", ").map(|value| value.parse::<u8>().unwrap()).collect();
+          let new_color: [u8; 4] = [new_color_vec[0], new_color_vec[1], new_color_vec[2], new_color_vec[3]];
+          Self::Message::ChangePixel(new_color)
+        })
       };
       
       html! {

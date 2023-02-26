@@ -172,105 +172,53 @@ impl Component for App {
   }
 
   fn view(&self, ctx: &Context<Self>) -> Html {
-    let link = ctx.link().clone();
-    let link2 = ctx.link().clone();
-    let link3 = ctx.link().clone();
-    let link4 = ctx.link().clone();
-    let link5 = ctx.link().clone();
-    let link6 = ctx.link().clone();
-    let link7 = ctx.link().clone();
-    let link8 = ctx.link().clone();
-    let link9 = ctx.link().clone();
-    let link10 = ctx.link().clone();
     //let mut from_scratch = false;
 
-    let create_load_process = move |from_scratch: bool| {
+    let create_load_callback = ctx.link().callback(|from_scratch: bool| {
       if from_scratch {
-        link.send_message(Self::Message::Create);
+        Self::Message::Create
       } else {
-        link.send_message(Self::Message::Load);
+        Self::Message::Load
       }
-    };
-  
-    let create_load_callback = Callback::from(move |from_scratch_passed: bool| {
-      create_load_process(from_scratch_passed);
     });
 
-    let send_bmp_process = move |new_bmp: BMP| {
-      log!("yes", new_bmp.contents.len());
-      link2.send_message(Self::Message::NewBMP(new_bmp))
-      //new_bmp so emit NewBMP message
-    };
-  
-    let send_bmp_callback = Callback::from(move |new_bmp: BMP| {
-      send_bmp_process(new_bmp);
+    let send_bmp_callback = ctx.link().callback(|new_bmp: BMP| {
+      Self::Message::NewBMP(new_bmp)
     });
     let send_bmp_callback2 = send_bmp_callback.clone();
 
-    let pixel_click_process = move |x: u16, y: u16| {
-      link3.send_message(Self::Message::PixelClicked(x, y))
-    };
-  
-    let send_pixel_click = Callback::from(move |coords: [u16; 2]| {
-      pixel_click_process(coords[0], coords[1]);
+    let send_pixel_click = ctx.link().callback(|coords: [u16; 2]| {
+      Self::Message::PixelClicked(coords[0], coords[1])
     });
 
     //pixel change
-    let change_pixel_process = move |new_color: [u8; 4]| {
-      link4.send_message(Self::Message::ChangeSelectedPixel(new_color));
-    };
-
-    let change_pixel_callback = Callback::from(move |new_color: [u8; 4]| {
-      change_pixel_process(new_color);
+    let change_pixel_callback = ctx.link().callback(|new_color: [u8; 4]| {
+      Self::Message::ChangeSelectedPixel(new_color)
     });
 
     //tools
-    let tool_change_process = move |tool: ToolsTypes| {
-      link5.send_message(Self::Message::ToolSelected(tool));
-    };
-
-    let tool_change_callback = Callback::from(move |tool: ToolsTypes| {
-      tool_change_process(tool);
+    let tool_change_callback = ctx.link().callback(|tool: ToolsTypes| {
+      Self::Message::ToolSelected(tool)
     });
 
-    let change_tool_color_process = move |color: [u8; 4]| {
-      link6.send_message(Self::Message::ChangeToolColor(color));
-    };
-
-    let change_tool_color_callback = Callback::from(move |color: [u8; 4]| {
-      change_tool_color_process(color);
+    let change_tool_color_callback = ctx.link().callback(|color: [u8; 4]| {
+      Self::Message::ChangeToolColor(color)
     });
 
-    let filter_process = move |filter_type: String| {
-      link7.send_message(Self::Message::Filter(filter_type));
-    };
-
-    let filter_callback = Callback::from(move |filter_type: String| {
-      filter_process(filter_type);
+    let filter_callback = ctx.link().callback(|filter_type: String| {
+      Self::Message::Filter(filter_type)
     });
 
-    let rect_process = move |endpoints: [[u16; 2]; 2]| {
-      link8.send_message(Self::Message::DrawRect(endpoints));
-    };
-
-    let rect_callback = Callback::from(move |endpoints: [[u16; 2]; 2]| {
-      rect_process(endpoints);
+    let rect_callback = ctx.link().callback(|endpoints: [[u16; 2]; 2]| {
+      Self::Message::DrawRect(endpoints)
     });
 
-    let line_process = move |endpoints: [[u16; 2]; 2]| {
-      link9.send_message(Self::Message::DrawLine(endpoints));
-    };
-
-    let line_callback = Callback::from(move |endpoints: [[u16; 2]; 2]| {
-      line_process(endpoints);
+    let line_callback = ctx.link().callback(|endpoints: [[u16; 2]; 2]| {
+      Self::Message::DrawLine(endpoints)
     });
 
-    let ellipse_process = move |ellipse_args: [[u16; 2]; 2]| {
-      link10.send_message(Self::Message::DrawEllipse(ellipse_args));
-    };
-
-    let ellipse_callback = Callback::from(move |ellipse_args: [[u16; 2]; 2]| {
-      ellipse_process(ellipse_args);
+    let ellipse_callback = ctx.link().callback(|ellipse_args: [[u16; 2]; 2]| {
+      Self::Message::DrawEllipse(ellipse_args)
     });
 
     let current_bmp = &self.to_owned().current_bmp;

@@ -60,8 +60,13 @@ impl Component for ImageActions {
 
     let fills_ref = NodeRef::default();
     let fills_ref_2 = fills_ref.clone();
+    let fills_ref_3 = fills_ref.clone();
     let shapes_ref = NodeRef::default();
     let shapes_ref_2 = shapes_ref.clone();
+    let shapes_ref_3 = shapes_ref.clone();
+    let filters_ref = NodeRef::default();
+    let filters_ref_2 = filters_ref.clone();
+    let filters_ref_3 = filters_ref.clone();
 
     let select_callback = Callback::from(move |e: Event| {
       let select: HtmlSelectElement = e.target_unchecked_into();
@@ -86,6 +91,15 @@ impl Component for ImageActions {
         "ellipse" => {
           tool_type = ToolsTypes::Ellipse;
         },
+        "greyscale" => {
+          tool_type = ToolsTypes::Greyscale;
+        },
+        "gaussian" => {
+          tool_type = ToolsTypes::Gaussian;
+        },
+        "box" => {
+          tool_type = ToolsTypes::Box;
+        },
         _ => {
           tool_type = ToolsTypes::NoneSelected;
         }
@@ -94,10 +108,13 @@ impl Component for ImageActions {
     });
 
     let select_callback2 = select_callback.clone();
+    let select_callback3 = select_callback.clone();
 
     let fills_callback = Callback::from(move |e: Event| {
+      let filters_select: HtmlSelectElement = filters_ref_2.cast().unwrap();
       let shapes_select: HtmlSelectElement = shapes_ref_2.cast().unwrap();
-      //set shapes callback value to non selected
+      //set the other selects to non selected
+      filters_select.set_value("none-selected");
       shapes_select.set_value("none-selected");
       select_callback.emit(e);
     });
@@ -107,14 +124,29 @@ impl Component for ImageActions {
     };
 
     let shapes_callback = Callback::from(move |e: Event| {
+      let filters_select: HtmlSelectElement = filters_ref_3.cast().unwrap();
       let fills_select: HtmlSelectElement = fills_ref_2.cast().unwrap();
-      //set fills callback value to non selected
+      //set the other selects to non selected
+      filters_select.set_value("none-selected");
       fills_select.set_value("none-selected");
       select_callback2.emit(e);
     });
 
     let shapes = {
       shapes_callback.clone()
+    };
+
+    let filters_callback = Callback::from(move |e: Event| {
+      let shapes_select: HtmlSelectElement = shapes_ref_3.cast().unwrap();
+      let fills_select: HtmlSelectElement = fills_ref_3.cast().unwrap();
+      //set the other selects to non selected
+      shapes_select.set_value("none-selected");
+      fills_select.set_value("none-selected");
+      select_callback3.emit(e);
+    });
+
+    let filters = {
+      filters_callback.clone()
     };
 
     let contents = ctx.clone().props().clone().current_bmp.as_ref().unwrap_or(&BMP::new(1, 1, None)).contents.to_owned();
@@ -152,13 +184,19 @@ impl Component for ImageActions {
           <option value={"none-selected"} selected={true}>{ "-- Fills --" }</option>
           <option value={"click-fill"}>{ "Click Fill" }</option>
           <option value={"bucket-fill"}>{ "Bucket Fill" }</option>
-          <option value={"invert"}>{ "Invert" }</option>
         </select>
         <select ref={shapes_ref} class={"image-actions"} onchange={shapes}>
           <option value={"none-selected"} selected={true}>{ "-- Shapes --" }</option>
           <option value={"line"}>{ "Line" }</option>
           <option value={"rect"}>{ "Rectangle" }</option>
           <option value={"ellipse"}>{ "Ellipse" }</option>
+        </select>
+        <select ref={filters_ref} class={"image-actions"} onchange={filters}>
+          <option value={"none-selected"} selected={true}>{ "-- Filters --" }</option>
+          <option value={"invert"}>{ "Invert" }</option>
+          <option value={"greyscale"}>{ "Greyscale" }</option>
+          <option value={"gaussian"}>{ "Gaussian Blur" }</option>
+          <option value={"box"}>{ "Box Blur" }</option>
         </select>
         <button onclick={download} class={"image-actions"}>{ "Download" }</button>
         <br/>

@@ -13,6 +13,9 @@ pub enum ToolsTypes {
   Line,
   Rect,
   Ellipse,
+  Greyscale,
+  Gaussian,
+  Box,
 }
 
 #[derive(PartialEq, Properties)]
@@ -85,31 +88,12 @@ impl Component for Tools {
 
   fn view(&self, ctx: &Context<Self>) -> Html {
     let link = ctx.link().clone();
-    let link2 = ctx.link().clone();
-    let link3 = ctx.link().clone();
-    let link4 = ctx.link().clone();
-    let link5 = ctx.link().clone();
 
     if self.display == "none".to_string() && ctx.props().show {
       link.send_message(Self::Message::Show);
     } else if self.display == "block".to_string() && !ctx.props().show {
       link.send_message(Self::Message::Hide);
     }
-
-    let tc_input_ref = NodeRef::default();
-    let tc_input_ref2 = tc_input_ref.clone();
-
-    let first_endpoint_ref = NodeRef::default();
-    let first_endpoint_ref2 = first_endpoint_ref.clone();
-    let second_endpoint_ref = NodeRef::default();
-    let second_endpoint_ref2 = second_endpoint_ref.clone();
-
-    let center_input_ref = NodeRef::default();
-    let center_input_ref2 = center_input_ref.clone();
-    let xlength_input_ref = NodeRef::default();
-    let xlength_input_ref2 = xlength_input_ref.clone();
-    let ylength_input_ref = NodeRef::default();
-    let ylength_input_ref2 = ylength_input_ref.clone();
     
     let mut selected_tool_name: String = "Selected Tool: ".to_string();
     let selected_tool_info: String;
@@ -155,71 +139,87 @@ impl Component for Tools {
         ellipse_display = "block".to_string();
         color_picker_display = "block".to_string();
       },
+      ToolsTypes::Greyscale => {
+        selected_tool_name += "Greyscale";
+        selected_tool_info = "Choose one channel (or all of them) to do a greyscale filter on.".to_string();
+        //
+      },
+      ToolsTypes::Gaussian => {
+        selected_tool_name += "Gaussian Blur";
+        selected_tool_info = "Specify blur radius and do a blur.".to_string();
+        //
+      },
+      ToolsTypes::Box => {
+        selected_tool_name += "Box Blur";
+        selected_tool_info = "Specify blur radius and do a blur.".to_string();
+        //
+      },
       ToolsTypes::NoneSelected => {
         selected_tool_name += "None Selected";
         selected_tool_info = "Use the 'Tools' dropdown at the top to select a tool.".to_string();
       },
     }
 
+    let tc_input_ref = NodeRef::default();
+
+    let first_endpoint_ref = NodeRef::default();
+    let second_endpoint_ref = NodeRef::default();
+
+    let center_input_ref = NodeRef::default();
+    let xlength_input_ref = NodeRef::default();
+    let ylength_input_ref = NodeRef::default();
+
     let tool_color = ctx.props().tool_color;
 
     let color_text = format!("({}, {}, {}, {})", tool_color[0], tool_color[1], tool_color[2], tool_color[3]);
 
-    let new_tool_color_callback = Callback::from(move |_| {
-      //get new pixel color
-      let tc_input: HtmlInputElement = tc_input_ref2.clone().cast().unwrap();
-      let new_color_vec: Vec<u8> = tc_input.value().replace("(", "").replace(")", "").split(", ").map(|value| value.parse::<u8>().unwrap()).collect();
-      let new_color: [u8; 4] = [new_color_vec[0], new_color_vec[1], new_color_vec[2], new_color_vec[3]];
-      link2.send_message(Self::Message::ChangeToolColor(new_color));
-    });
-
     let new_tool_color = {
-      new_tool_color_callback.clone()
+      let tc_input_ref2 = tc_input_ref.clone();
+      ctx.link().callback(move |_| {
+        let tc_input: HtmlInputElement = tc_input_ref2.clone().cast().unwrap();
+        let new_color_vec: Vec<u8> = tc_input.value().replace("(", "").replace(")", "").split(", ").map(|value| value.parse::<u8>().unwrap()).collect();
+        let new_color: [u8; 4] = [new_color_vec[0], new_color_vec[1], new_color_vec[2], new_color_vec[3]];
+        Self::Message::ChangeToolColor(new_color)
+      })
     };
 
-    let invert_callback = Callback::from(move |_| {
-      link3.send_message(Self::Message::Filter("invert".to_string()));
-    });
+    let invert = ctx.link().callback(|_| Self::Message::Filter("invert".to_string()));
 
-    let invert = {
-      invert_callback.clone()
+    let create = {
+      let first_endpoint_ref2 = first_endpoint_ref.clone();
+      let second_endpoint_ref2 = second_endpoint_ref.clone();
+      ctx.link().callback(move |_| {
+        let first_endpoint_input: HtmlInputElement = first_endpoint_ref2.cast().unwrap();
+        let first_endpoint_vec: Vec<u16> = first_endpoint_input.value().replace("(", "").replace(")", "").split(", ").map(|value| value.parse::<u16>().unwrap()).collect();
+        let first_endpoint: [u16; 2] = [first_endpoint_vec[0], first_endpoint_vec[1]];
+        let second_endpoint_input: HtmlInputElement = second_endpoint_ref2.cast().unwrap();
+        let second_endpoint_vec: Vec<u16> = second_endpoint_input.value().replace("(", "").replace(")", "").split(", ").map(|value| value.parse::<u16>().unwrap()).collect();
+        let second_endpoint: [u16; 2] = [second_endpoint_vec[0], second_endpoint_vec[1]];
+        let endpoints: [[u16; 2]; 2] = [first_endpoint, second_endpoint];
+        if let ToolsTypes::Line = selected_tool {
+          Self::Message::Line(endpoints)
+        } else {
+          //"else if let ToolsTypes::Rect = selected_tool" would be better but would not match all arms
+          Self::Message::Rect(endpoints)
+        }
+      })
     };
 
     //ellipse display needs center, xlength, ylength
-
-    let create_callback = Callback::from(move |_| {
-      let first_endpoint_input: HtmlInputElement = first_endpoint_ref2.clone().cast().unwrap();
-      let first_endpoint_vec: Vec<u16> = first_endpoint_input.value().replace("(", "").replace(")", "").split(", ").map(|value| value.parse::<u16>().unwrap()).collect();
-      let first_endpoint: [u16; 2] = [first_endpoint_vec[0], first_endpoint_vec[1]];
-      let second_endpoint_input: HtmlInputElement = second_endpoint_ref2.clone().cast().unwrap();
-      let second_endpoint_vec: Vec<u16> = second_endpoint_input.value().replace("(", "").replace(")", "").split(", ").map(|value| value.parse::<u16>().unwrap()).collect();
-      let second_endpoint: [u16; 2] = [second_endpoint_vec[0], second_endpoint_vec[1]];
-      let endpoints: [[u16; 2]; 2] = [first_endpoint, second_endpoint];
-      if let ToolsTypes::Line = selected_tool {
-        link4.send_message(Self::Message::Line(endpoints));
-      }
-      if let ToolsTypes::Rect = selected_tool {
-        link4.send_message(Self::Message::Rect(endpoints));
-      }
-    });
-
-    let create = {
-      create_callback.clone()
-    };
-
-    let ellipse_callback = Callback::from(move |_| {
-      let center_input: HtmlInputElement = center_input_ref2.clone().cast().unwrap();
-      let center_input_vec: Vec<u16> = center_input.value().replace("(", "").replace(")", "").split(", ").map(|value| value.parse::<u16>().unwrap()).collect();
-      let xlength_input: HtmlInputElement = xlength_input_ref2.clone().cast().unwrap();
-      let xlength: u16 = xlength_input.value().parse().unwrap();
-      let ylength_input: HtmlInputElement = ylength_input_ref2.clone().cast().unwrap();
-      let ylength: u16 = ylength_input.value().parse().unwrap();
-      let ellipse_args: [[u16; 2]; 2] = [[center_input_vec[0], center_input_vec[1]], [xlength, ylength]];
-      link5.send_message(Self::Message::Ellipse(ellipse_args));
-    });
-
     let ellipse = {
-      ellipse_callback.clone()
+      let center_input_ref2 = center_input_ref.clone();
+      let xlength_input_ref2 = xlength_input_ref.clone();
+      let ylength_input_ref2 = ylength_input_ref.clone();
+      ctx.link().callback(move |_| {
+        let center_input: HtmlInputElement = center_input_ref2.cast().unwrap();
+        let center_input_vec: Vec<u16> = center_input.value().replace("(", "").replace(")", "").split(", ").map(|value| value.parse::<u16>().unwrap()).collect();
+        let xlength_input: HtmlInputElement = xlength_input_ref2.cast().unwrap();
+        let xlength: u16 = xlength_input.value().parse().unwrap();
+        let ylength_input: HtmlInputElement = ylength_input_ref2.cast().unwrap();
+        let ylength: u16 = ylength_input.value().parse().unwrap();
+        let ellipse_args: [[u16; 2]; 2] = [[center_input_vec[0], center_input_vec[1]], [xlength, ylength]];
+        Self::Message::Ellipse(ellipse_args)
+      })
     };
   
     html! {
@@ -234,13 +234,13 @@ impl Component for Tools {
           </div>
           <div style={"display: ".to_string()+&ellipse_display}>
             <label for="center">{"Center: "}</label>
-            <input name="center" placeholder="(0, 0)" ref={center_input_ref}/>
+            <input name="center" placeholder="(0, 0)" ref={&center_input_ref}/>
             <br/>
             <label for="x-length">{"X Length: "}</label>
-            <input name="x-length" ref={xlength_input_ref}/>
+            <input name="x-length" ref={&xlength_input_ref}/>
             <br/>
             <label for="y-length">{"Y Length: "}</label>
-            <input name="y-length" ref={ylength_input_ref}/>
+            <input name="y-length" ref={&ylength_input_ref}/>
             <br/>
             <button onclick={ellipse}>{ "Create" }</button>
           </div>

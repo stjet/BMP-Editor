@@ -48,32 +48,17 @@ impl Component for Start {
   }
 
   fn view(&self, ctx: &Context<Self>) -> Html {
-    let link = ctx.link().clone();
-    let link2 = ctx.link().clone();
-
     //true means file from scratch (ask user about dimensions, etc)
     //false means ask user to upload file
     //let mut scratch: bool = false;
 
-    let create_hide_callback = Callback::from(move |_| {
-      link.send_message(Self::Message::SendCreate);
-      //hide self
-      link.send_message(Self::Message::Hide);
+    let create_new = ctx.link().batch_callback(move |_| {
+      vec![Self::Message::SendCreate, Self::Message::Hide]
     });
 
-    let load_hide_callback = Callback::from(move |_| {
-      link2.send_message(Self::Message::SendLoad);
-      //hide self
-      link2.send_message(Self::Message::Hide);
+    let load_from_file = ctx.link().batch_callback(move |_| {
+      vec![Self::Message::SendLoad, Self::Message::Hide]
     });
-
-    let create_new = {
-      create_hide_callback.clone()
-    };
-  
-    let load_from_file = {
-      load_hide_callback.clone()
-    };
   
     html! {
       <div id="start" style={"display: ".to_string()+&self.display}>
