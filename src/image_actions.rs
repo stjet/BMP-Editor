@@ -59,14 +59,8 @@ impl Component for ImageActions {
     }
 
     let fills_ref = NodeRef::default();
-    let fills_ref_2 = fills_ref.clone();
-    let fills_ref_3 = fills_ref.clone();
     let shapes_ref = NodeRef::default();
-    let shapes_ref_2 = shapes_ref.clone();
-    let shapes_ref_3 = shapes_ref.clone();
     let filters_ref = NodeRef::default();
-    let filters_ref_2 = filters_ref.clone();
-    let filters_ref_3 = filters_ref.clone();
 
     let select_callback = Callback::from(move |e: Event| {
       let select: HtmlSelectElement = e.target_unchecked_into();
@@ -107,74 +101,72 @@ impl Component for ImageActions {
       link2.send_message(Self::Message::ToolChange(tool_type));
     });
 
-    let select_callback2 = select_callback.clone();
-    let select_callback3 = select_callback.clone();
-
-    let fills_callback = Callback::from(move |e: Event| {
-      let filters_select: HtmlSelectElement = filters_ref_2.cast().unwrap();
-      let shapes_select: HtmlSelectElement = shapes_ref_2.cast().unwrap();
-      //set the other selects to non selected
-      filters_select.set_value("none-selected");
-      shapes_select.set_value("none-selected");
-      select_callback.emit(e);
-    });
-
     let fills = {
-      fills_callback.clone()
+      let filters_ref2 = filters_ref.clone();
+      let shapes_ref2 = shapes_ref.clone();
+      let select_callback2 = select_callback.clone();
+      Callback::from(move |e: Event| {
+        let filters_select: HtmlSelectElement = filters_ref2.cast().unwrap();
+        let shapes_select: HtmlSelectElement = shapes_ref2.cast().unwrap();
+        //set the other selects to non selected
+        filters_select.set_value("none-selected");
+        shapes_select.set_value("none-selected");
+        select_callback2.emit(e);
+      })
     };
-
-    let shapes_callback = Callback::from(move |e: Event| {
-      let filters_select: HtmlSelectElement = filters_ref_3.cast().unwrap();
-      let fills_select: HtmlSelectElement = fills_ref_2.cast().unwrap();
-      //set the other selects to non selected
-      filters_select.set_value("none-selected");
-      fills_select.set_value("none-selected");
-      select_callback2.emit(e);
-    });
 
     let shapes = {
-      shapes_callback.clone()
+      let filters_ref2 = filters_ref.clone();
+      let fills_ref2 = fills_ref.clone();
+      let select_callback2 = select_callback.clone();
+      Callback::from(move |e: Event| {
+        let filters_select: HtmlSelectElement = filters_ref2.cast().unwrap();
+        let fills_select: HtmlSelectElement = fills_ref2.cast().unwrap();
+        //set the other selects to non selected
+        filters_select.set_value("none-selected");
+        fills_select.set_value("none-selected");
+        select_callback2.emit(e);
+      })
     };
 
-    let filters_callback = Callback::from(move |e: Event| {
-      let shapes_select: HtmlSelectElement = shapes_ref_3.cast().unwrap();
-      let fills_select: HtmlSelectElement = fills_ref_3.cast().unwrap();
-      //set the other selects to non selected
-      shapes_select.set_value("none-selected");
-      fills_select.set_value("none-selected");
-      select_callback3.emit(e);
-    });
-
     let filters = {
-      filters_callback.clone()
+      let shapes_ref2 = shapes_ref.clone();
+      let fills_ref2 = fills_ref.clone();
+      let select_callback2 = select_callback.clone();
+      Callback::from(move |e: Event| {
+        let shapes_select: HtmlSelectElement = shapes_ref2.cast().unwrap();
+        let fills_select: HtmlSelectElement = fills_ref2.cast().unwrap();
+        //set the other selects to non selected
+        shapes_select.set_value("none-selected");
+        fills_select.set_value("none-selected");
+        select_callback2.emit(e);
+      })
     };
 
     let contents = ctx.clone().props().clone().current_bmp.as_ref().unwrap_or(&BMP::new(1, 1, None)).contents.to_owned();
 
     let download_ref = NodeRef::default();
-    let download_ref_2 = download_ref.clone();
-
-    let download_callback = Callback::from(move |_| {
-      //create blob
-      let bmp_array: Array = Array::new();
-      for i in 0..contents.len() {
-        bmp_array.push(&JsValue::from(contents[i]));
-      }
-      let bmp_uint8array = Uint8Array::new(&JsValue::from(bmp_array));
-      let bmp_array_2 = Array::new();
-      bmp_array_2.push(&bmp_uint8array.buffer());
-      let bmp_blob = Blob::new_with_u8_array_sequence(&bmp_array_2).unwrap();
-      //get object url
-      let obj_url = Url::create_object_url_with_blob(&bmp_blob).unwrap();
-      //download
-      let download_link: HtmlLinkElement = download_ref_2.clone().cast().unwrap();
-      download_link.set_href(&obj_url);
-      download_link.set_attribute("download", "edited.bmp").unwrap();
-      download_link.click();
-    });
 
     let download = {
-      download_callback.clone()
+      let download_ref2 = download_ref.clone();
+      Callback::from(move |_| {
+        //create blob
+        let bmp_array: Array = Array::new();
+        for i in 0..contents.len() {
+          bmp_array.push(&JsValue::from(contents[i]));
+        }
+        let bmp_uint8array = Uint8Array::new(&JsValue::from(bmp_array));
+        let bmp_array2 = Array::new();
+        bmp_array2.push(&bmp_uint8array.buffer());
+        let bmp_blob = Blob::new_with_u8_array_sequence(&bmp_array2).unwrap();
+        //get object url
+        let obj_url = Url::create_object_url_with_blob(&bmp_blob).unwrap();
+        //download
+        let download_link: HtmlLinkElement = download_ref2.clone().cast().unwrap();
+        download_link.set_href(&obj_url);
+        download_link.set_attribute("download", "edited.bmp").unwrap();
+        download_link.click();
+      })
     };
 
     html! {

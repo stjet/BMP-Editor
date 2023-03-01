@@ -26,6 +26,7 @@ pub struct ToolsProps {
   pub line_callback: Callback<[[u16; 2]; 2]>,
   pub rect_callback: Callback<[[u16; 2]; 2]>,
   pub ellipse_callback: Callback<[[u16; 2]; 2]>,
+  pub blur_callback: Callback<u8>,
   pub tool_color: [u8; 4],
   pub show: bool,
 }
@@ -38,6 +39,8 @@ pub enum ToolsMessage {
   Rect([[u16; 2]; 2]),
   Ellipse([[u16; 2]; 2]),
   ChangeToolColor([u8; 4]),
+  Blur(u8),
+  Grayscale,
 }
 
 pub struct Tools {
@@ -83,6 +86,14 @@ impl Component for Tools {
         let _ = ctx.props().change_tool_color_callback.emit(color);
         false
       },
+      Self::Message::Blur(blur_radius) => {
+        let _ = ctx.props().blur_callback.emit(blur_radius);
+        false
+      },
+      Self::Message::Grayscale => {
+        let _ = ctx.props().filter_callback.emit("grayscale".to_string());
+        false
+      }
     }
   }
 
@@ -102,6 +113,8 @@ impl Component for Tools {
     let mut invert_button_display: String = "none".to_string();
     let mut end_points_display: String = "none".to_string();
     let mut ellipse_display: String = "none".to_string();
+    let mut blur_display: String = "none".to_string();
+    let mut grayscale_display: String = "none".to_string();
 
     let selected_tool = ctx.props().selected_tool;
     
@@ -142,17 +155,17 @@ impl Component for Tools {
       ToolsTypes::Greyscale => {
         selected_tool_name += "Greyscale";
         selected_tool_info = "Choose one channel (or all of them) to do a greyscale filter on.".to_string();
-        //
+        grayscale_display = "block".to_string();
       },
       ToolsTypes::Gaussian => {
         selected_tool_name += "Gaussian Blur";
         selected_tool_info = "Specify blur radius and do a blur.".to_string();
-        //
+        blur_display = "block".to_string();
       },
       ToolsTypes::Box => {
         selected_tool_name += "Box Blur";
         selected_tool_info = "Specify blur radius and do a blur.".to_string();
-        //
+        blur_display = "block".to_string();
       },
       ToolsTypes::NoneSelected => {
         selected_tool_name += "None Selected";
@@ -168,6 +181,8 @@ impl Component for Tools {
     let center_input_ref = NodeRef::default();
     let xlength_input_ref = NodeRef::default();
     let ylength_input_ref = NodeRef::default();
+
+    let blur_radius_ref = NodeRef::default();
 
     let tool_color = ctx.props().tool_color;
 
@@ -221,6 +236,22 @@ impl Component for Tools {
         Self::Message::Ellipse(ellipse_args)
       })
     };
+
+    //blur only needs blur radius
+    let blur = {
+      let blur_radius_ref2 = blur_radius_ref.clone();
+      ctx.link().callback(move |_| {
+        let blur_radius_input: HtmlInputElement = blur_radius_ref2.cast().unwrap();
+        let blur_radius: u8 = blur_radius_input.value().parse().unwrap();
+        Self::Message::Blur(blur_radius)
+      })
+    };
+
+    let grayscale = {
+      ctx.link().callback(move |_| {
+        Self::Message::Grayscale
+      })
+    };
   
     html! {
       <div id={"tools"} style={"display: ".to_string()+&self.display}>
@@ -248,13 +279,22 @@ impl Component for Tools {
             <label for="first-endpoint">{"First Endpoint: "}</label>
             <input name="first-endpoint" placeholder="(0, 0)" ref={first_endpoint_ref}/>
             <br/>
-            <label for="second-endpoint">{"First Endpoint: "}</label>
+            <label for="second-endpoint">{"Second Endpoint: "}</label>
             <input name="second-endpoint" placeholder="(0, 0)" ref={second_endpoint_ref}/>
             <br/>
             <button onclick={create}>{ "Create" }</button>
           </div>
           <div style={"display: ".to_string()+&invert_button_display}>
             <button onclick={invert}>{ "Invert" }</button>
+          </div>
+          <div style={"display: ".to_string()+&blur_display}>
+            <label for="blur-radius">{"Blur Radius: "}</label>
+            <input type="number" name="blur-radius" value="3" ref={blur_radius_ref}/>
+            <br/>
+            <button onclick={blur}>{ "Blur" }</button>
+          </div>
+          <div style={"display: ".to_string()+&grayscale_display}>
+            <button onclick={grayscale}>{ "Grayscale Filter" }</button>
           </div>
         </div>
       </div>

@@ -35,6 +35,7 @@ pub enum AppMessage {
   DrawLine([[u16; 2]; 2]),
   DrawRect([[u16; 2]; 2]),
   DrawEllipse([[u16; 2]; 2]),
+  Blur(u8),
 }
 
 pub struct App {
@@ -143,6 +144,12 @@ impl Component for App {
           self.current_bmp = Some(current_bmp);
           self.should_redraw = true;
           true
+        } else if filter_type == "grayscale" {
+          let mut current_bmp = self.current_bmp.as_ref().unwrap().clone();
+          current_bmp.grayscale().unwrap();
+          self.current_bmp = Some(current_bmp);
+          self.should_redraw = true;
+          true
         } else {
           false
         }
@@ -167,6 +174,28 @@ impl Component for App {
         self.current_bmp = Some(current_bmp);
         self.should_redraw = true;
         true
+      },
+      Self::Message::Blur(blur_radius) => {
+        let mut current_bmp = self.current_bmp.as_ref().unwrap().clone();
+        match self.selected_tool {
+          ToolsTypes::Gaussian => {
+            current_bmp.gaussian_blur(blur_radius).unwrap();
+            self.current_bmp = Some(current_bmp);
+            self.should_redraw = true;
+            true
+          },
+          ToolsTypes::Box => {
+            current_bmp.box_blur(blur_radius).unwrap();
+            self.current_bmp = Some(current_bmp);
+            self.should_redraw = true;
+            true
+          },
+          _ => {
+            //do nothing
+            self.should_redraw = false;
+            false
+          },
+        }
       }
     }
   }
@@ -185,7 +214,6 @@ impl Component for App {
     let send_bmp_callback = ctx.link().callback(|new_bmp: BMP| {
       Self::Message::NewBMP(new_bmp)
     });
-    let send_bmp_callback2 = send_bmp_callback.clone();
 
     let send_pixel_click = ctx.link().callback(|coords: [u16; 2]| {
       Self::Message::PixelClicked(coords[0], coords[1])
@@ -221,15 +249,19 @@ impl Component for App {
       Self::Message::DrawEllipse(ellipse_args)
     });
 
+    let blur_callback = ctx.link().callback(|blur_radius: u8| {
+      Self::Message::Blur(blur_radius)
+    });
+
     let current_bmp = &self.to_owned().current_bmp;
   
     html! {
       <div id="main">
         <Start {create_load_callback} />
-        <Create {send_bmp_callback} show={self.show_create} />
-        <Load send_bmp_callback={send_bmp_callback2} show={self.show_load} />
+        <Create send_bmp_callback={send_bmp_callback.clone()} show={self.show_create} />
+        <Load send_bmp_callback={send_bmp_callback} show={self.show_load} />
         <ImageActions current_bmp={current_bmp.clone()} show={self.show_image_actions} {tool_change_callback} />
-        <Tools selected_tool={self.selected_tool} {change_tool_color_callback} {filter_callback} {line_callback} {rect_callback} {ellipse_callback} tool_color={self.tool_color} show={self.show_image_actions} />
+        <Tools selected_tool={self.selected_tool} {change_tool_color_callback} {filter_callback} {line_callback} {rect_callback} {ellipse_callback} {blur_callback} tool_color={self.tool_color} show={self.show_image_actions} />
         <Pixels {send_pixel_click} current_bmp={current_bmp.clone()} should_redraw={self.should_redraw} />
         <PixelActions pixel_info={self.pixel_info.clone()} show={self.show_pixel_info} {change_pixel_callback} />
       </div>

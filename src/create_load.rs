@@ -59,21 +59,17 @@ impl Component for Create {
     let h_input_ref = NodeRef::default();
     let w_input_ref = NodeRef::default();
 
-    let h_input_ref2 = h_input_ref.clone();
-    let w_input_ref2 = w_input_ref.clone();
-
-    let create_bmp_callback = Callback::from(move |_| {
-      //get height and width
-      let height_input: HtmlInputElement = h_input_ref2.cast().unwrap();
-      let width_input: HtmlInputElement = w_input_ref2.clone().cast().unwrap();
-      let height: i32 = height_input.value().parse().unwrap();
-      let width: u32 = width_input.value().parse().unwrap();
-      link.send_message(Self::Message::CreateBMP(height, width));
-      link.send_message(Self::Message::Hide);
-    });
-
     let create_bmp = {
-      create_bmp_callback.clone()
+      let h_input_ref2 = h_input_ref.clone();
+      let w_input_ref2 = w_input_ref.clone();
+      ctx.link().batch_callback(move |_| {
+        //get height and width
+        let height_input: HtmlInputElement = h_input_ref2.cast().unwrap();
+        let width_input: HtmlInputElement = w_input_ref2.clone().cast().unwrap();
+        let height: i32 = height_input.value().parse().unwrap();
+        let width: u32 = width_input.value().parse().unwrap();
+        vec![Self::Message::CreateBMP(height, width), Self::Message::Hide]
+      })
     };
   
     html! {
@@ -108,7 +104,6 @@ pub enum LoadMessage {
 pub struct Load {
   display: String,
   reader: Option<FileReader>,
-  bmp: Option<BMP>,
 }
 
 impl Component for Load {
@@ -116,7 +111,7 @@ impl Component for Load {
   type Properties = LoadProps;
 
   fn create(_ctx: &Context<Self>) -> Self {
-    Self { display: "none".to_string(), reader: None, bmp: None }
+    Self { display: "none".to_string(), reader: None }
   }
 
   fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
