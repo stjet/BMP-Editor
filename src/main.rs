@@ -8,7 +8,7 @@ mod create_load;
 use create_load::Create;
 use create_load::Load;
 mod pixels;
-use pixels::Pixels;
+use pixels::{Pixels, PixelRedrawRange};
 mod pixel_actions;
 use pixel_actions::{PixelActions, PixelInfo};
 mod image_actions;
@@ -47,6 +47,7 @@ pub struct App {
   show_pixel_info: bool,
   show_image_actions: bool,
   should_redraw: bool,
+  only_redraw_coords: PixelRedrawRange,
   pixel_info: Option<PixelInfo>,
 }
 
@@ -55,10 +56,11 @@ impl Component for App {
   type Properties = Props;
 
   fn create(_ctx: &Context<Self>) -> Self {
-    Self { current_bmp: None, selected_tool: ToolsTypes::NoneSelected, tool_color: [255, 255, 255, 255], show_create: false, show_load: false, show_pixel_info: false, show_image_actions: false, should_redraw: true, pixel_info: None }
+    Self { current_bmp: None, selected_tool: ToolsTypes::NoneSelected, tool_color: [255, 255, 255, 255], show_create: false, show_load: false, show_pixel_info: false, show_image_actions: false, should_redraw: true, only_redraw_coords: PixelRedrawRange::Empty, pixel_info: None }
   }
 
   fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
+    self.only_redraw_coords = PixelRedrawRange::Empty;
     let link = ctx.link().clone();
     match msg {
       Self::Message::Create => {
@@ -116,6 +118,7 @@ impl Component for App {
         current_bmp.change_color_of_pixel(coord[0], coord[1], color).unwrap();
         self.current_bmp = Some(current_bmp);
         self.should_redraw = true;
+        self.only_redraw_coords = PixelRedrawRange::Point(coord);
         true
       },
       Self::Message::FillBucket(color) => {
@@ -159,6 +162,7 @@ impl Component for App {
         current_bmp.draw_line(self.tool_color, endpoints[0], endpoints[1]).unwrap();
         self.current_bmp = Some(current_bmp);
         self.should_redraw = true;
+        self.only_redraw_coords = PixelRedrawRange::Rect(endpoints);
         true
       },
       Self::Message::DrawRect(endpoints) => {
@@ -166,6 +170,7 @@ impl Component for App {
         current_bmp.draw_rectangle(Some(self.tool_color), Some(self.tool_color), endpoints[0], endpoints[1]).unwrap();
         self.current_bmp = Some(current_bmp);
         self.should_redraw = true;
+        self.only_redraw_coords = PixelRedrawRange::Rect(endpoints);
         true
       },
       Self::Message::DrawEllipse(ellipse_args) => {
@@ -262,7 +267,7 @@ impl Component for App {
         <Load send_bmp_callback={send_bmp_callback} show={self.show_load} />
         <ImageActions current_bmp={current_bmp.clone()} show={self.show_image_actions} {tool_change_callback} />
         <Tools selected_tool={self.selected_tool} {change_tool_color_callback} {filter_callback} {line_callback} {rect_callback} {ellipse_callback} {blur_callback} tool_color={self.tool_color} show={self.show_image_actions} />
-        <Pixels {send_pixel_click} current_bmp={current_bmp.clone()} should_redraw={self.should_redraw} />
+        <Pixels {send_pixel_click} current_bmp={current_bmp.clone()} should_redraw={self.should_redraw} only_redraw_coords={self.only_redraw_coords} />
         <PixelActions pixel_info={self.pixel_info.clone()} show={self.show_pixel_info} {change_pixel_callback} />
       </div>
     }
