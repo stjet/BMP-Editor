@@ -47,6 +47,16 @@
       .mobile-only {
         display: none;
       }
+      .link-divider {
+        padding: 0px 2px;
+      }
+      #bottom-links {
+        font-size: 0.6em;
+        position: fixed;
+        bottom: 0;
+        right: 0;
+        margin: 14px;
+      }
 
       @media (max-width: 1100px) {
         #tools {
@@ -56,14 +66,17 @@
         .mobile-only {
           display: block;
         }
+        #bottom-links {
+          display: none;
+        }
       }
     </style>
   
-<link rel="preload" href="/bmp-editor-73b2bed9d8f0eb3c_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
-<link rel="modulepreload" href="/bmp-editor-73b2bed9d8f0eb3c.js"></head>
+<link rel="preload" href="/bmp-editor-c6b914ca0205f125_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
+<link rel="modulepreload" href="/bmp-editor-c6b914ca0205f125.js"></head>
   <body>
   
-<script type="module">import init from '/bmp-editor-73b2bed9d8f0eb3c.js';init('/bmp-editor-73b2bed9d8f0eb3c_bg.wasm');</script><script>(function () {
+<script type="module">import init from '/bmp-editor-c6b914ca0205f125.js';init('/bmp-editor-c6b914ca0205f125_bg.wasm');</script><script>(function () {
     var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     var url = protocol + '//' + window.location.host + '/_trunk/ws';
     var poll_interval = 5000;

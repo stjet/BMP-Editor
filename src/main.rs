@@ -269,6 +269,13 @@ impl Component for App {
         <Tools selected_tool={self.selected_tool} {change_tool_color_callback} {filter_callback} {line_callback} {rect_callback} {ellipse_callback} {blur_callback} tool_color={self.tool_color} show={self.show_image_actions} />
         <Pixels {send_pixel_click} current_bmp={current_bmp.clone()} should_redraw={self.should_redraw} only_redraw_coords={self.only_redraw_coords} />
         <PixelActions pixel_info={self.pixel_info.clone()} show={self.show_pixel_info} {change_pixel_callback} />
+        <div id={"bottom-links"}>
+          <a href="https://github.com/jetstream0/BMP-Editor" target="_blank">{ "Editor Github" }</a>
+          <span class="link-divider">{ "-" }</span>
+          <a href="https://github.com/jetstream0/BMP-Rust" target="_blank">{ "Library Github" }</a>
+          <span class="link-divider">{ "-" }</span>
+          <a href="https://www.prussiafan.club/articles/bmp-deep-dive" target="_blank">{ "BMP Format" }</a>
+        </div>
       </div>
     }
   }

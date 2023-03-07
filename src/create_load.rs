@@ -4,7 +4,7 @@ use gloo_console::log;
 use web_sys::HtmlInputElement;
 use gloo::file::callbacks::FileReader;
 use gloo::file::File;
-//use gloo_utils::document;
+
 // create
 
 #[derive(PartialEq, Properties)]

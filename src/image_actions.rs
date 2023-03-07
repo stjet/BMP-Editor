@@ -1,10 +1,17 @@
 use yew::prelude::*;
-use wasm_bindgen::{JsValue};
+use wasm_bindgen::{JsValue, JsCast};
 use web_sys::{Blob, Url, HtmlLinkElement, HtmlSelectElement};
 use js_sys::{Uint8Array, Array};
 use bmp_rust::bmp::BMP;
+use gloo_utils::document;
+use gloo_events::EventListener;
+use std::collections::HashMap;
+use gloo_console::log;
 
 use crate::tools::ToolsTypes;
+
+//keyboard shortcuts: ctrl+[ for tool left cycle, ctrl+] for tool right cycle, and then ctrl+shift+key for specific tools
+//ctrl+z to redo, possibly ctrl+y to undo redo
 
 #[derive(PartialEq, Properties)]
 pub struct ImageActionsProps {
@@ -17,10 +24,21 @@ pub enum ImageActionsMessage {
   Show,
   Hide,
   ToolChange(ToolsTypes),
+  SetKeybindsListener(Option<EventListener>),
+}
+
+#[derive(Clone)]
+pub enum KeybindActions {
+  Undo,
+  PreviousTool,
+  NextTool,
+  ToolChange(ToolsTypes),
 }
 
 pub struct ImageActions {
   display: String,
+  keybinds: HashMap<String, KeybindActions>,
+  keybinds_listener: Option<EventListener>,
 }
 
 impl Component for ImageActions {
@@ -28,7 +46,13 @@ impl Component for ImageActions {
   type Properties = ImageActionsProps;
 
   fn create(_ctx: &Context<Self>) -> Self {
-    Self { display: "none".to_string() }
+    let keybinds: HashMap<String, KeybindActions> = HashMap::from([
+      ("ctrl+z".to_string(), KeybindActions::Undo),
+      ("[".to_string(), KeybindActions::PreviousTool),
+      ("]".to_string(), KeybindActions::NextTool),
+      ("c".to_string(), KeybindActions::ToolChange(ToolsTypes::ClickFill)),
+    ]);
+    Self { display: "none".to_string(), keybinds, keybinds_listener: None }
   }
 
   fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
@@ -43,6 +67,10 @@ impl Component for ImageActions {
       },
       Self::Message::ToolChange(tool_type) => {
         ctx.props().tool_change_callback.emit(tool_type);
+        false
+      },
+      Self::Message::SetKeybindsListener(keybinds_listener) => {
+        self.keybinds_listener = keybinds_listener;
         false
       }
     }
@@ -61,6 +89,57 @@ impl Component for ImageActions {
     let fills_ref = NodeRef::default();
     let shapes_ref = NodeRef::default();
     let filters_ref = NodeRef::default();
+
+    let keybinds_callback = {
+      let filters_ref2 = filters_ref.clone();
+      let shapes_ref2 = shapes_ref.clone();
+      let fills_ref2 = fills_ref.clone();
+      let keybinds = self.keybinds.clone();
+      ctx.link().batch_callback(move |e: Event| {
+        log!("b");
+        let keyboard_event: KeyboardEvent = e.dyn_into::<web_sys::KeyboardEvent>().unwrap();
+        let mut pressed_key: String = keyboard_event.key();
+        if keyboard_event.ctrl_key() {
+          pressed_key = "ctrl+".to_owned()+&pressed_key;
+        }
+        let bind = keybinds.get(&pressed_key);
+        log!(pressed_key);
+        if bind.is_some() {
+          let filters_select: HtmlSelectElement = filters_ref2.cast().unwrap();
+          let shapes_select: HtmlSelectElement = shapes_ref2.cast().unwrap();
+          let fills_select: HtmlSelectElement = fills_ref2.cast().unwrap();
+          match bind.unwrap() {
+            KeybindActions::Undo => {
+              //
+            },
+            KeybindActions::PreviousTool => {
+              //
+            },
+            KeybindActions::NextTool => {
+              //
+            },
+            KeybindActions::ToolChange(tool_type) => {
+              filters_select.set_value("none-selected");
+              shapes_select.set_value("none-selected");
+              fills_select.set_value("none-selected");
+              let select_id = tool_type.get_select_id();
+              if select_id == "fills" {
+                fills_select.set_value(&tool_type.to_string());
+              } else if select_id == "shapes" {
+                shapes_select.set_value(&tool_type.to_string());
+              } else if select_id == "filters" {
+                filters_select.set_value(&tool_type.to_string());
+              }
+              return Some(Self::Message::ToolChange(*tool_type));
+            },
+          }
+        }
+        None
+      })
+    };
+
+    let keybinds_listener = Some(EventListener::new(&document(), "keydown", move |e| keybinds_callback.emit(e.clone())));
+    link.send_message(Self::Message::SetKeybindsListener(keybinds_listener));
 
     let select_callback = Callback::from(move |e: Event| {
       let select: HtmlSelectElement = e.target_unchecked_into();

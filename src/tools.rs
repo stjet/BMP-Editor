@@ -1,5 +1,6 @@
 use yew::prelude::*;
 use web_sys::HtmlInputElement;
+use std::fmt;
 //use gloo_console::log;
 
 //gives instructions on how to use tool, and also provides the interface to actually use tool
@@ -16,6 +17,43 @@ pub enum ToolsTypes {
   Greyscale,
   Gaussian,
   Box,
+}
+
+impl ToolsTypes {
+  pub fn get_select_id(&self) -> &'static str {
+    match self {
+      ToolsTypes::NoneSelected => "none",
+      ToolsTypes::ClickFill => "fills",
+      ToolsTypes::BucketFill => "fills",
+      ToolsTypes::Invert => "filters",
+      ToolsTypes::Line => "shapes",
+      ToolsTypes::Rect => "shapes",
+      ToolsTypes::Ellipse => "shapes",
+      ToolsTypes::Greyscale => "filters",
+      ToolsTypes::Gaussian => "filters",
+      ToolsTypes::Box => "filters",
+    }
+  }
+  fn as_str(&self) -> &'static str {
+    match self {
+      ToolsTypes::NoneSelected => "none-selected",
+      ToolsTypes::ClickFill => "click-fill",
+      ToolsTypes::BucketFill => "bucket-fill",
+      ToolsTypes::Invert => "invert",
+      ToolsTypes::Line => "line",
+      ToolsTypes::Rect => "rect",
+      ToolsTypes::Ellipse => "ellipse",
+      ToolsTypes::Greyscale => "World",
+      ToolsTypes::Gaussian => "gaussian",
+      ToolsTypes::Box => "box",
+    }
+  }
+}
+
+impl fmt::Display for ToolsTypes {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+      write!(f, "{}", self.as_str())
+  }
 }
 
 #[derive(PartialEq, Properties)]
