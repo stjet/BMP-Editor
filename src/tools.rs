@@ -1,7 +1,10 @@
 use yew::prelude::*;
 use web_sys::HtmlInputElement;
 use std::fmt;
+use std::collections::HashMap;
 //use gloo_console::log;
+
+use crate::image_actions::KeybindActions;
 
 //gives instructions on how to use tool, and also provides the interface to actually use tool
 
@@ -43,7 +46,7 @@ impl ToolsTypes {
       ToolsTypes::Line => "line",
       ToolsTypes::Rect => "rect",
       ToolsTypes::Ellipse => "ellipse",
-      ToolsTypes::Greyscale => "World",
+      ToolsTypes::Greyscale => "greyscale",
       ToolsTypes::Gaussian => "gaussian",
       ToolsTypes::Box => "box",
     }
@@ -52,7 +55,7 @@ impl ToolsTypes {
 
 impl fmt::Display for ToolsTypes {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-      write!(f, "{}", self.as_str())
+    write!(f, "{}", self.as_str())
   }
 }
 
@@ -67,6 +70,7 @@ pub struct ToolsProps {
   pub blur_callback: Callback<u8>,
   pub tool_color: [u8; 4],
   pub show: bool,
+  pub keybinds: HashMap<String, KeybindActions>,
 }
 
 pub enum ToolsMessage {
@@ -78,7 +82,7 @@ pub enum ToolsMessage {
   Ellipse([[u16; 2]; 2]),
   ChangeToolColor([u8; 4]),
   Blur(u8),
-  Grayscale,
+  Greyscale,
 }
 
 pub struct Tools {
@@ -128,8 +132,8 @@ impl Component for Tools {
         let _ = ctx.props().blur_callback.emit(blur_radius);
         false
       },
-      Self::Message::Grayscale => {
-        let _ = ctx.props().filter_callback.emit("grayscale".to_string());
+      Self::Message::Greyscale => {
+        let _ = ctx.props().filter_callback.emit("greyscale".to_string());
         false
       }
     }
@@ -145,14 +149,14 @@ impl Component for Tools {
     }
     
     let mut selected_tool_name: String = "Selected Tool: ".to_string();
-    let selected_tool_info: String;
+    let mut selected_tool_info: String;
 
     let mut color_picker_display: String = "none".to_string();
     let mut invert_button_display: String = "none".to_string();
     let mut end_points_display: String = "none".to_string();
     let mut ellipse_display: String = "none".to_string();
     let mut blur_display: String = "none".to_string();
-    let mut grayscale_display: String = "none".to_string();
+    let mut greyscale_display: String = "none".to_string();
 
     let selected_tool = ctx.props().selected_tool;
     
@@ -193,7 +197,7 @@ impl Component for Tools {
       ToolsTypes::Greyscale => {
         selected_tool_name += "Greyscale";
         selected_tool_info = "Choose one channel (or all of them) to do a greyscale filter on.".to_string();
-        grayscale_display = "block".to_string();
+        greyscale_display = "block".to_string();
       },
       ToolsTypes::Gaussian => {
         selected_tool_name += "Gaussian Blur";
@@ -210,6 +214,15 @@ impl Component for Tools {
         selected_tool_info = "Use the 'Tools' dropdown at the top to select a tool.".to_string();
       },
     }
+
+    let matching_keybind = ctx.props().keybinds.iter().find_map(|(key, action)| {
+      if let KeybindActions::ToolChange(changed_tool_type) = action {
+        if *changed_tool_type == selected_tool {
+          return Some(key);
+        }
+      }
+      return None;
+    });
 
     let tc_input_ref = NodeRef::default();
 
@@ -285,9 +298,9 @@ impl Component for Tools {
       })
     };
 
-    let grayscale = {
+    let greyscale = {
       ctx.link().callback(move |_| {
-        Self::Message::Grayscale
+        Self::Message::Greyscale
       })
     };
   
@@ -295,7 +308,14 @@ impl Component for Tools {
       <div id={"tools"} style={"display: ".to_string()+&self.display}>
         <div>
           <h2>{ selected_tool_name }</h2>
-          <p>{ selected_tool_info }</p>
+          <p>
+            { selected_tool_info }
+            if matching_keybind.is_some() {
+              { " The key " }
+              <code>{ &matching_keybind.unwrap() }</code>
+              { " is the keyboard shortcut for this tool." }
+            }
+          </p>
           <div style={"display: ".to_string()+&color_picker_display}>
             <label for="tool-color">{"Color: "}</label>
             <input name="tool-color" value={color_text} ref={tc_input_ref}/>
@@ -331,9 +351,10 @@ impl Component for Tools {
             <br/>
             <button onclick={blur}>{ "Blur" }</button>
           </div>
-          <div style={"display: ".to_string()+&grayscale_display}>
-            <button onclick={grayscale}>{ "Grayscale Filter" }</button>
+          <div style={"display: ".to_string()+&greyscale_display}>
+            <button onclick={greyscale}>{ "Greyscale Filter" }</button>
           </div>
+          <p>{ "Tip: Press the " }<code>{"["}</code>{ " and " }<code>{"]"}</code>{ " keys to cycle through the tools." }</p>
         </div>
       </div>
     }

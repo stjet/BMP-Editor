@@ -1,6 +1,7 @@
 use yew::prelude::*;
 use bmp_rust::bmp::BMP;
 use gloo_console::log;
+use std::collections::HashMap;
 
 mod start;
 use start::Start;
@@ -12,7 +13,7 @@ use pixels::{Pixels, PixelRedrawRange};
 mod pixel_actions;
 use pixel_actions::{PixelActions, PixelInfo};
 mod image_actions;
-use image_actions::ImageActions;
+use image_actions::{ImageActions, KeybindActions};
 mod tools;
 use tools::{Tools, ToolsTypes};
 
@@ -49,6 +50,7 @@ pub struct App {
   should_redraw: bool,
   only_redraw_coords: PixelRedrawRange,
   pixel_info: Option<PixelInfo>,
+  keybinds: HashMap<String, KeybindActions>,
 }
 
 impl Component for App {
@@ -56,7 +58,21 @@ impl Component for App {
   type Properties = Props;
 
   fn create(_ctx: &Context<Self>) -> Self {
-    Self { current_bmp: None, selected_tool: ToolsTypes::NoneSelected, tool_color: [255, 255, 255, 255], show_create: false, show_load: false, show_pixel_info: false, show_image_actions: false, should_redraw: true, only_redraw_coords: PixelRedrawRange::Empty, pixel_info: None }
+    let keybinds: HashMap<String, KeybindActions> = HashMap::from([
+      ("ctrl+z".to_string(), KeybindActions::Undo),
+      ("[".to_string(), KeybindActions::PreviousTool),
+      ("]".to_string(), KeybindActions::NextTool),
+      ("c".to_string(), KeybindActions::ToolChange(ToolsTypes::ClickFill)),
+      ("b".to_string(), KeybindActions::ToolChange(ToolsTypes::BucketFill)),
+      ("i".to_string(), KeybindActions::ToolChange(ToolsTypes::Invert)),
+      ("l".to_string(), KeybindActions::ToolChange(ToolsTypes::Line)),
+      ("r".to_string(), KeybindActions::ToolChange(ToolsTypes::Rect)),
+      ("e".to_string(), KeybindActions::ToolChange(ToolsTypes::Ellipse)),
+      ("g".to_string(), KeybindActions::ToolChange(ToolsTypes::Greyscale)),
+      ("a".to_string(), KeybindActions::ToolChange(ToolsTypes::Gaussian)),
+      ("o".to_string(), KeybindActions::ToolChange(ToolsTypes::Box)),
+    ]);
+    Self { current_bmp: None, selected_tool: ToolsTypes::NoneSelected, tool_color: [255, 255, 255, 255], show_create: false, show_load: false, show_pixel_info: false, show_image_actions: false, should_redraw: true, only_redraw_coords: PixelRedrawRange::Empty, pixel_info: None, keybinds }
   }
 
   fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
@@ -147,7 +163,7 @@ impl Component for App {
           self.current_bmp = Some(current_bmp);
           self.should_redraw = true;
           true
-        } else if filter_type == "grayscale" {
+        } else if filter_type == "greyscale" {
           let mut current_bmp = self.current_bmp.as_ref().unwrap().clone();
           current_bmp.grayscale().unwrap();
           self.current_bmp = Some(current_bmp);
@@ -265,8 +281,8 @@ impl Component for App {
         <Start {create_load_callback} />
         <Create send_bmp_callback={send_bmp_callback.clone()} show={self.show_create} />
         <Load send_bmp_callback={send_bmp_callback} show={self.show_load} />
-        <ImageActions current_bmp={current_bmp.clone()} show={self.show_image_actions} {tool_change_callback} />
-        <Tools selected_tool={self.selected_tool} {change_tool_color_callback} {filter_callback} {line_callback} {rect_callback} {ellipse_callback} {blur_callback} tool_color={self.tool_color} show={self.show_image_actions} />
+        <ImageActions selected_tool={self.selected_tool} current_bmp={current_bmp.clone()} show={self.show_image_actions} {tool_change_callback} keybinds={self.keybinds.clone()} />
+        <Tools selected_tool={self.selected_tool} {change_tool_color_callback} {filter_callback} {line_callback} {rect_callback} {ellipse_callback} {blur_callback} tool_color={self.tool_color} show={self.show_image_actions} keybinds={self.keybinds.clone()} />
         <Pixels {send_pixel_click} current_bmp={current_bmp.clone()} should_redraw={self.should_redraw} only_redraw_coords={self.only_redraw_coords} />
         <PixelActions pixel_info={self.pixel_info.clone()} show={self.show_pixel_info} {change_pixel_callback} />
         <div id={"bottom-links"}>

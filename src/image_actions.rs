@@ -5,8 +5,8 @@ use js_sys::{Uint8Array, Array};
 use bmp_rust::bmp::BMP;
 use gloo_utils::document;
 use gloo_events::EventListener;
-use std::collections::HashMap;
 use gloo_console::log;
+use std::collections::HashMap;
 
 use crate::tools::ToolsTypes;
 
@@ -18,6 +18,8 @@ pub struct ImageActionsProps {
   pub show: bool,
   pub current_bmp: Option<BMP>,
   pub tool_change_callback: Callback<ToolsTypes>,
+  pub selected_tool: ToolsTypes,
+  pub keybinds: HashMap<String, KeybindActions>,
 }
 
 pub enum ImageActionsMessage {
@@ -27,7 +29,7 @@ pub enum ImageActionsMessage {
   SetKeybindsListener(Option<EventListener>),
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum KeybindActions {
   Undo,
   PreviousTool,
@@ -37,7 +39,6 @@ pub enum KeybindActions {
 
 pub struct ImageActions {
   display: String,
-  keybinds: HashMap<String, KeybindActions>,
   keybinds_listener: Option<EventListener>,
 }
 
@@ -46,13 +47,7 @@ impl Component for ImageActions {
   type Properties = ImageActionsProps;
 
   fn create(_ctx: &Context<Self>) -> Self {
-    let keybinds: HashMap<String, KeybindActions> = HashMap::from([
-      ("ctrl+z".to_string(), KeybindActions::Undo),
-      ("[".to_string(), KeybindActions::PreviousTool),
-      ("]".to_string(), KeybindActions::NextTool),
-      ("c".to_string(), KeybindActions::ToolChange(ToolsTypes::ClickFill)),
-    ]);
-    Self { display: "none".to_string(), keybinds, keybinds_listener: None }
+    Self { display: "none".to_string(), keybinds_listener: None }
   }
 
   fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
@@ -94,9 +89,22 @@ impl Component for ImageActions {
       let filters_ref2 = filters_ref.clone();
       let shapes_ref2 = shapes_ref.clone();
       let fills_ref2 = fills_ref.clone();
-      let keybinds = self.keybinds.clone();
+      let keybinds = ctx.props().keybinds.clone();
+      let selected_tool = ctx.props().selected_tool.clone();
       ctx.link().batch_callback(move |e: Event| {
-        log!("b");
+        fn set_select(tool_type: &ToolsTypes, filters_select: HtmlSelectElement, shapes_select: HtmlSelectElement, fills_select: HtmlSelectElement) {
+          filters_select.set_value("none-selected");
+          shapes_select.set_value("none-selected");
+          fills_select.set_value("none-selected");
+          let select_id = tool_type.get_select_id();
+          if select_id == "fills" {
+            fills_select.set_value(&tool_type.to_string());
+          } else if select_id == "shapes" {
+            shapes_select.set_value(&tool_type.to_string());
+          } else if select_id == "filters" {
+            filters_select.set_value(&tool_type.to_string());
+          }
+        }
         let keyboard_event: KeyboardEvent = e.dyn_into::<web_sys::KeyboardEvent>().unwrap();
         let mut pressed_key: String = keyboard_event.key();
         if keyboard_event.ctrl_key() {
@@ -105,6 +113,7 @@ impl Component for ImageActions {
         let bind = keybinds.get(&pressed_key);
         log!(pressed_key);
         if bind.is_some() {
+          let tools_vec: Vec<ToolsTypes> = vec![ToolsTypes::NoneSelected, ToolsTypes::ClickFill, ToolsTypes::BucketFill, ToolsTypes::Line, ToolsTypes::Rect, ToolsTypes::Ellipse, ToolsTypes::Invert, ToolsTypes::Greyscale, ToolsTypes::Gaussian, ToolsTypes::Box];
           let filters_select: HtmlSelectElement = filters_ref2.cast().unwrap();
           let shapes_select: HtmlSelectElement = shapes_ref2.cast().unwrap();
           let fills_select: HtmlSelectElement = fills_ref2.cast().unwrap();
@@ -113,23 +122,31 @@ impl Component for ImageActions {
               //
             },
             KeybindActions::PreviousTool => {
-              //
+              let tool_index = tools_vec.iter().position(|&item| item == selected_tool).unwrap();
+              let new_tool_index;
+              if tool_index == 0 {
+                new_tool_index = tools_vec.len()-1;
+              } else {
+                new_tool_index = tool_index-1;
+              }
+              let tool_type = tools_vec[new_tool_index];
+              set_select(&tool_type, filters_select, shapes_select, fills_select);
+              return Some(Self::Message::ToolChange(tool_type));
             },
             KeybindActions::NextTool => {
-              //
+              let tool_index = tools_vec.iter().position(|&item| item == selected_tool).unwrap();
+              let new_tool_index;
+              if tool_index == tools_vec.len()-1 {
+                new_tool_index = 0;
+              } else {
+                new_tool_index = tool_index+1;
+              }
+              let tool_type = tools_vec[new_tool_index];
+              set_select(&tool_type, filters_select, shapes_select, fills_select);
+              return Some(Self::Message::ToolChange(tool_type));
             },
             KeybindActions::ToolChange(tool_type) => {
-              filters_select.set_value("none-selected");
-              shapes_select.set_value("none-selected");
-              fills_select.set_value("none-selected");
-              let select_id = tool_type.get_select_id();
-              if select_id == "fills" {
-                fills_select.set_value(&tool_type.to_string());
-              } else if select_id == "shapes" {
-                shapes_select.set_value(&tool_type.to_string());
-              } else if select_id == "filters" {
-                filters_select.set_value(&tool_type.to_string());
-              }
+              set_select(&tool_type, filters_select, shapes_select, fills_select);
               return Some(Self::Message::ToolChange(*tool_type));
             },
           }
@@ -228,6 +245,7 @@ impl Component for ImageActions {
 
     let download = {
       let download_ref2 = download_ref.clone();
+      let window = web_sys::window().unwrap();
       Callback::from(move |_| {
         //create blob
         let bmp_array: Array = Array::new();
@@ -243,8 +261,12 @@ impl Component for ImageActions {
         //download
         let download_link: HtmlLinkElement = download_ref2.clone().cast().unwrap();
         download_link.set_href(&obj_url);
-        download_link.set_attribute("download", "edited.bmp").unwrap();
-        download_link.click();
+        //prompt to set file name
+        let file_name = window.prompt_with_message_and_default("File name?", "edited.bmp").unwrap_or(Some("edited.bmp".to_string())).unwrap();
+        if file_name != "" {
+          download_link.set_attribute("download", &file_name).unwrap();
+          download_link.click();
+        }
       })
     };
 
