@@ -149,7 +149,7 @@ impl Component for Tools {
     }
     
     let mut selected_tool_name: String = "Selected Tool: ".to_string();
-    let mut selected_tool_info: String;
+    let selected_tool_info: String;
 
     let mut color_picker_display: String = "none".to_string();
     let mut invert_button_display: String = "none".to_string();

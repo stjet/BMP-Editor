@@ -18,6 +18,7 @@ pub struct ImageActionsProps {
   pub show: bool,
   pub current_bmp: Option<BMP>,
   pub tool_change_callback: Callback<ToolsTypes>,
+  pub undo_callback: Callback<bool>,
   pub selected_tool: ToolsTypes,
   pub keybinds: HashMap<String, KeybindActions>,
 }
@@ -25,6 +26,7 @@ pub struct ImageActionsProps {
 pub enum ImageActionsMessage {
   Show,
   Hide,
+  Undo(bool),
   ToolChange(ToolsTypes),
   SetKeybindsListener(Option<EventListener>),
 }
@@ -60,6 +62,12 @@ impl Component for ImageActions {
         self.display = "none".to_string();
         true
       },
+      Self::Message::Undo(button_clicked) => {
+        //true if button clicked, false if done by keyboard shortcut
+        //also just here because callbacks require parameters, that is probably bad practice sorry
+        ctx.props().undo_callback.emit(button_clicked);
+        true
+      }
       Self::Message::ToolChange(tool_type) => {
         ctx.props().tool_change_callback.emit(tool_type);
         false
@@ -119,7 +127,7 @@ impl Component for ImageActions {
           let fills_select: HtmlSelectElement = fills_ref2.cast().unwrap();
           match bind.unwrap() {
             KeybindActions::Undo => {
-              //
+              return Some(Self::Message::Undo(false));
             },
             KeybindActions::PreviousTool => {
               let tool_index = tools_vec.iter().position(|&item| item == selected_tool).unwrap();
@@ -270,6 +278,10 @@ impl Component for ImageActions {
       })
     };
 
+    let undo = ctx.link().callback(|_| {
+      Self::Message::Undo(true)
+    });
+
     html! {
       <div id={"image-actions-container"} style={"display: ".to_string()+&self.display}>
         <a ref={download_ref}></a>
@@ -291,6 +303,7 @@ impl Component for ImageActions {
           <option value={"gaussian"}>{ "Gaussian Blur" }</option>
           <option value={"box"}>{ "Box Blur" }</option>
         </select>
+        <button onclick={undo} class={"image-actions"}>{ "Undo" }</button>
         <button onclick={download} class={"image-actions"}>{ "Download" }</button>
         <br/>
       </div>

@@ -1,5 +1,5 @@
 use yew::prelude::*;
-use bmp_rust::bmp::BMP;
+use bmp_rust::bmp::{BMP, ImageDiff};
 use gloo_console::log;
 use std::collections::HashMap;
 
@@ -37,6 +37,7 @@ pub enum AppMessage {
   DrawRect([[u16; 2]; 2]),
   DrawEllipse([[u16; 2]; 2]),
   Blur(u8),
+  Undo,
 }
 
 pub struct App {
@@ -50,6 +51,7 @@ pub struct App {
   should_redraw: bool,
   only_redraw_coords: PixelRedrawRange,
   pixel_info: Option<PixelInfo>,
+  last_diff: Vec<ImageDiff>,
   keybinds: HashMap<String, KeybindActions>,
 }
 
@@ -72,11 +74,15 @@ impl Component for App {
       ("a".to_string(), KeybindActions::ToolChange(ToolsTypes::Gaussian)),
       ("o".to_string(), KeybindActions::ToolChange(ToolsTypes::Box)),
     ]);
-    Self { current_bmp: None, selected_tool: ToolsTypes::NoneSelected, tool_color: [255, 255, 255, 255], show_create: false, show_load: false, show_pixel_info: false, show_image_actions: false, should_redraw: true, only_redraw_coords: PixelRedrawRange::Empty, pixel_info: None, keybinds }
+    Self { current_bmp: None, selected_tool: ToolsTypes::NoneSelected, tool_color: [255, 255, 255, 255], show_create: false, show_load: false, show_pixel_info: false, show_image_actions: false, should_redraw: true, only_redraw_coords: PixelRedrawRange::Empty, pixel_info: None, last_diff: Vec::new(), keybinds }
   }
 
   fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
     self.only_redraw_coords = PixelRedrawRange::Empty;
+    //don't store more than last 10 last diffs
+    if self.last_diff.len() == 10 {
+      self.last_diff.remove(0);
+    }
     let link = ctx.link().clone();
     match msg {
       Self::Message::Create => {
@@ -122,6 +128,7 @@ impl Component for App {
         //iterate through pixels and change them
         let mut current_bmp = self.current_bmp.as_ref().unwrap().clone();
         current_bmp.change_color_of_pixels(pixels, color).unwrap();
+        self.last_diff.push(BMP::diff(&self.current_bmp.as_ref().unwrap(), &current_bmp).unwrap());
         self.current_bmp = Some(current_bmp);
         self.should_redraw = true;
         true
@@ -132,6 +139,7 @@ impl Component for App {
         let coord = self.pixel_info.as_ref().unwrap().coords;
         let mut current_bmp = self.current_bmp.as_ref().unwrap().clone();
         current_bmp.change_color_of_pixel(coord[0], coord[1], color).unwrap();
+        self.last_diff.push(BMP::diff(&self.current_bmp.as_ref().unwrap(), &current_bmp).unwrap());
         self.current_bmp = Some(current_bmp);
         self.should_redraw = true;
         self.only_redraw_coords = PixelRedrawRange::Point(coord);
@@ -142,6 +150,7 @@ impl Component for App {
         let coord = self.pixel_info.as_ref().unwrap().coords;
         let mut current_bmp = self.current_bmp.as_ref().unwrap().clone();
         current_bmp.fill_bucket(color, coord[0] as usize, coord[1] as usize).unwrap();
+        self.last_diff.push(BMP::diff(&self.current_bmp.as_ref().unwrap(), &current_bmp).unwrap());
         self.current_bmp = Some(current_bmp);
         self.should_redraw = true;
         true
@@ -160,12 +169,14 @@ impl Component for App {
         if filter_type == "invert" {
           let mut current_bmp = self.current_bmp.as_ref().unwrap().clone();
           current_bmp.invert(None).unwrap();
+          self.last_diff.push(BMP::diff(&self.current_bmp.as_ref().unwrap(), &current_bmp).unwrap());
           self.current_bmp = Some(current_bmp);
           self.should_redraw = true;
           true
         } else if filter_type == "greyscale" {
           let mut current_bmp = self.current_bmp.as_ref().unwrap().clone();
-          current_bmp.grayscale().unwrap();
+          current_bmp.greyscale().unwrap();
+          self.last_diff.push(BMP::diff(&self.current_bmp.as_ref().unwrap(), &current_bmp).unwrap());
           self.current_bmp = Some(current_bmp);
           self.should_redraw = true;
           true
@@ -176,6 +187,7 @@ impl Component for App {
       Self::Message::DrawLine(endpoints) => {
         let mut current_bmp = self.current_bmp.as_ref().unwrap().clone();
         current_bmp.draw_line(self.tool_color, endpoints[0], endpoints[1]).unwrap();
+        self.last_diff.push(BMP::diff(&self.current_bmp.as_ref().unwrap(), &current_bmp).unwrap());
         self.current_bmp = Some(current_bmp);
         self.should_redraw = true;
         self.only_redraw_coords = PixelRedrawRange::Rect(endpoints);
@@ -184,6 +196,7 @@ impl Component for App {
       Self::Message::DrawRect(endpoints) => {
         let mut current_bmp = self.current_bmp.as_ref().unwrap().clone();
         current_bmp.draw_rectangle(Some(self.tool_color), Some(self.tool_color), endpoints[0], endpoints[1]).unwrap();
+        self.last_diff.push(BMP::diff(&self.current_bmp.as_ref().unwrap(), &current_bmp).unwrap());
         self.current_bmp = Some(current_bmp);
         self.should_redraw = true;
         self.only_redraw_coords = PixelRedrawRange::Rect(endpoints);
@@ -192,6 +205,7 @@ impl Component for App {
       Self::Message::DrawEllipse(ellipse_args) => {
         let mut current_bmp = self.current_bmp.as_ref().unwrap().clone();
         current_bmp.draw_ellipse(ellipse_args[0], ellipse_args[1][0], ellipse_args[1][1], self.tool_color, Some(self.tool_color), true).unwrap();
+        self.last_diff.push(BMP::diff(&self.current_bmp.as_ref().unwrap(), &current_bmp).unwrap());
         self.current_bmp = Some(current_bmp);
         self.should_redraw = true;
         true
@@ -201,12 +215,14 @@ impl Component for App {
         match self.selected_tool {
           ToolsTypes::Gaussian => {
             current_bmp.gaussian_blur(blur_radius).unwrap();
+            self.last_diff.push(BMP::diff(&self.current_bmp.as_ref().unwrap(), &current_bmp).unwrap());
             self.current_bmp = Some(current_bmp);
             self.should_redraw = true;
             true
           },
           ToolsTypes::Box => {
             current_bmp.box_blur(blur_radius).unwrap();
+            self.last_diff.push(BMP::diff(&self.current_bmp.as_ref().unwrap(), &current_bmp).unwrap());
             self.current_bmp = Some(current_bmp);
             self.should_redraw = true;
             true
@@ -216,6 +232,32 @@ impl Component for App {
             self.should_redraw = false;
             false
           },
+        }
+      },
+      Self::Message::Undo => {
+        if self.last_diff.len() > 0 {
+          let mut current_bmp = self.current_bmp.as_ref().unwrap().clone();
+          let last_diff: &ImageDiff = &self.last_diff.last().unwrap();
+          let dib_header = current_bmp.get_dib_header().unwrap();
+          let file_header = current_bmp.get_header();
+          //write diff to bmp, specifically the first color
+          if last_diff.is_same_size() {
+            //write the difference
+            for diff_num in 0..last_diff.diff.len() {
+              let diff = &last_diff[diff_num];
+              let diff_coord = diff.coord;
+              let diff_color = diff.color1.unwrap();
+              current_bmp.change_color_of_pixel_efficient(diff_coord[0], diff_coord[1], diff_color, &dib_header, &file_header).unwrap();
+            }
+            self.last_diff.pop();
+            self.current_bmp = Some(current_bmp);
+            self.should_redraw = true;
+          } else {
+            //todo: make it work for images of different sizes (extend the image or shrink it and write the diffs)
+          }
+          true
+        } else {
+          false
         }
       }
     }
@@ -250,6 +292,10 @@ impl Component for App {
       Self::Message::ToolSelected(tool)
     });
 
+    let undo_callback = ctx.link().callback(|_: bool| {
+      Self::Message::Undo
+    });
+
     let change_tool_color_callback = ctx.link().callback(|color: [u8; 4]| {
       Self::Message::ChangeToolColor(color)
     });
@@ -281,7 +327,7 @@ impl Component for App {
         <Start {create_load_callback} />
         <Create send_bmp_callback={send_bmp_callback.clone()} show={self.show_create} />
         <Load send_bmp_callback={send_bmp_callback} show={self.show_load} />
-        <ImageActions selected_tool={self.selected_tool} current_bmp={current_bmp.clone()} show={self.show_image_actions} {tool_change_callback} keybinds={self.keybinds.clone()} />
+        <ImageActions selected_tool={self.selected_tool} current_bmp={current_bmp.clone()} show={self.show_image_actions} {tool_change_callback} {undo_callback} keybinds={self.keybinds.clone()} />
         <Tools selected_tool={self.selected_tool} {change_tool_color_callback} {filter_callback} {line_callback} {rect_callback} {ellipse_callback} {blur_callback} tool_color={self.tool_color} show={self.show_image_actions} keybinds={self.keybinds.clone()} />
         <Pixels {send_pixel_click} current_bmp={current_bmp.clone()} should_redraw={self.should_redraw} only_redraw_coords={self.only_redraw_coords} />
         <PixelActions pixel_info={self.pixel_info.clone()} show={self.show_pixel_info} {change_pixel_callback} />
