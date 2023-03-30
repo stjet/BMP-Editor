@@ -2,7 +2,7 @@ use yew::prelude::*;
 use web_sys::HtmlInputElement;
 use std::fmt;
 use std::collections::HashMap;
-//use gloo_console::log;
+use gloo_console::log;
 
 use crate::image_actions::KeybindActions;
 
@@ -20,6 +20,8 @@ pub enum ToolsTypes {
   Greyscale,
   Gaussian,
   Box,
+  Median,
+  Rotate,
 }
 
 impl ToolsTypes {
@@ -28,13 +30,15 @@ impl ToolsTypes {
       ToolsTypes::NoneSelected => "none",
       ToolsTypes::ClickFill => "fills",
       ToolsTypes::BucketFill => "fills",
-      ToolsTypes::Invert => "filters",
+      ToolsTypes::Invert => "fills",
       ToolsTypes::Line => "shapes",
       ToolsTypes::Rect => "shapes",
       ToolsTypes::Ellipse => "shapes",
       ToolsTypes::Greyscale => "filters",
       ToolsTypes::Gaussian => "filters",
       ToolsTypes::Box => "filters",
+      ToolsTypes::Median => "filters",
+      ToolsTypes::Rotate => "filters",
     }
   }
   fn as_str(&self) -> &'static str {
@@ -49,6 +53,8 @@ impl ToolsTypes {
       ToolsTypes::Greyscale => "greyscale",
       ToolsTypes::Gaussian => "gaussian",
       ToolsTypes::Box => "box",
+      ToolsTypes::Median => "median",
+      ToolsTypes::Rotate => "rotate",
     }
   }
 }
@@ -83,6 +89,7 @@ pub enum ToolsMessage {
   ChangeToolColor([u8; 4]),
   Blur(u8),
   Greyscale,
+  Rotate,
 }
 
 pub struct Tools {
@@ -135,6 +142,10 @@ impl Component for Tools {
       Self::Message::Greyscale => {
         let _ = ctx.props().filter_callback.emit("greyscale".to_string());
         false
+      },
+      Self::Message::Rotate => {
+        let _ = ctx.props().filter_callback.emit("rotate".to_string());
+        false
       }
     }
   }
@@ -157,6 +168,7 @@ impl Component for Tools {
     let mut ellipse_display: String = "none".to_string();
     let mut blur_display: String = "none".to_string();
     let mut greyscale_display: String = "none".to_string();
+    let mut rotate_display: String = "none".to_string();
 
     let selected_tool = ctx.props().selected_tool;
     
@@ -209,6 +221,16 @@ impl Component for Tools {
         selected_tool_info = "Specify blur radius and do a blur.".to_string();
         blur_display = "block".to_string();
       },
+      ToolsTypes::Median => {
+        selected_tool_name += "Median Filter";
+        selected_tool_info = "Specify blur radius and do a median filter (good for filtering out noise).".to_string();
+        blur_display = "block".to_string();
+      },
+      ToolsTypes::Rotate => {
+        selected_tool_name += "Rotate";
+        selected_tool_info = "Click the button below to rotate the image 90 degrees.".to_string();
+        rotate_display = "block".to_string();
+      },
       ToolsTypes::NoneSelected => {
         selected_tool_name += "None Selected";
         selected_tool_info = "Use the 'Tools' dropdown at the top to select a tool.".to_string();
@@ -239,11 +261,23 @@ impl Component for Tools {
 
     let color_text = format!("({}, {}, {}, {})", tool_color[0], tool_color[1], tool_color[2], tool_color[3]);
 
+    fn parse_vec_input(input: String) -> String {
+      input.replace("(", "").replace(")", "").replace(" ", "")
+    }
+    
+    fn input_to_color(input: String) -> Vec<u8> {
+      return parse_vec_input(input).split(",").map(|value| value.parse::<u8>().unwrap()).collect();
+    }
+
+    fn input_to_u16_vec(input: String) -> Vec<u16> {
+      return parse_vec_input(input).split(",").map(|value| value.parse::<u16>().unwrap()).collect();
+    }
+
     let new_tool_color = {
       let tc_input_ref2 = tc_input_ref.clone();
       ctx.link().callback(move |_| {
         let tc_input: HtmlInputElement = tc_input_ref2.clone().cast().unwrap();
-        let new_color_vec: Vec<u8> = tc_input.value().replace("(", "").replace(")", "").split(", ").map(|value| value.parse::<u8>().unwrap()).collect();
+        let new_color_vec = input_to_color(tc_input.value());
         let new_color: [u8; 4] = [new_color_vec[0], new_color_vec[1], new_color_vec[2], new_color_vec[3]];
         Self::Message::ChangeToolColor(new_color)
       })
@@ -256,10 +290,10 @@ impl Component for Tools {
       let second_endpoint_ref2 = second_endpoint_ref.clone();
       ctx.link().callback(move |_| {
         let first_endpoint_input: HtmlInputElement = first_endpoint_ref2.cast().unwrap();
-        let first_endpoint_vec: Vec<u16> = first_endpoint_input.value().replace("(", "").replace(")", "").split(", ").map(|value| value.parse::<u16>().unwrap()).collect();
+        let first_endpoint_vec: Vec<u16> = input_to_u16_vec(first_endpoint_input.value());
         let first_endpoint: [u16; 2] = [first_endpoint_vec[0], first_endpoint_vec[1]];
         let second_endpoint_input: HtmlInputElement = second_endpoint_ref2.cast().unwrap();
-        let second_endpoint_vec: Vec<u16> = second_endpoint_input.value().replace("(", "").replace(")", "").split(", ").map(|value| value.parse::<u16>().unwrap()).collect();
+        let second_endpoint_vec: Vec<u16> = input_to_u16_vec(second_endpoint_input.value());
         let second_endpoint: [u16; 2] = [second_endpoint_vec[0], second_endpoint_vec[1]];
         let endpoints: [[u16; 2]; 2] = [first_endpoint, second_endpoint];
         if let ToolsTypes::Line = selected_tool {
@@ -278,7 +312,7 @@ impl Component for Tools {
       let ylength_input_ref2 = ylength_input_ref.clone();
       ctx.link().callback(move |_| {
         let center_input: HtmlInputElement = center_input_ref2.cast().unwrap();
-        let center_input_vec: Vec<u16> = center_input.value().replace("(", "").replace(")", "").split(", ").map(|value| value.parse::<u16>().unwrap()).collect();
+        let center_input_vec: Vec<u16> = input_to_u16_vec(center_input.value());
         let xlength_input: HtmlInputElement = xlength_input_ref2.cast().unwrap();
         let xlength: u16 = xlength_input.value().parse().unwrap();
         let ylength_input: HtmlInputElement = ylength_input_ref2.cast().unwrap();
@@ -301,6 +335,12 @@ impl Component for Tools {
     let greyscale = {
       ctx.link().callback(move |_| {
         Self::Message::Greyscale
+      })
+    };
+
+    let rotate = {
+      ctx.link().callback(move |_| {
+        Self::Message::Rotate
       })
     };
   
@@ -354,7 +394,10 @@ impl Component for Tools {
           <div style={"display: ".to_string()+&greyscale_display}>
             <button onclick={greyscale}>{ "Greyscale Filter" }</button>
           </div>
-          <p>{ "Tip: Press the " }<code>{"["}</code>{ " and " }<code>{"]"}</code>{ " keys to cycle through the tools." }</p>
+          <div style={"display: ".to_string()+&rotate_display}>
+            <button onclick={rotate}>{ "Rotate 90 degrees" }</button>
+          </div>
+          <p class="shortcut-tip">{ "Tip: Press the " }<code>{"["}</code>{ " and " }<code>{"]"}</code>{ " keys to cycle through the tools. Also, you can use " }<code>{"ctrl+z"}</code>{ " to undo changes." }</p>
         </div>
       </div>
     }

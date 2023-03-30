@@ -73,6 +73,8 @@ impl Component for App {
       ("g".to_string(), KeybindActions::ToolChange(ToolsTypes::Greyscale)),
       ("a".to_string(), KeybindActions::ToolChange(ToolsTypes::Gaussian)),
       ("o".to_string(), KeybindActions::ToolChange(ToolsTypes::Box)),
+      ("m".to_string(), KeybindActions::ToolChange(ToolsTypes::Median)),
+      ("t".to_string(), KeybindActions::ToolChange(ToolsTypes::Rotate)),
     ]);
     Self { current_bmp: None, selected_tool: ToolsTypes::NoneSelected, tool_color: [255, 255, 255, 255], show_create: false, show_load: false, show_pixel_info: false, show_image_actions: false, should_redraw: true, only_redraw_coords: PixelRedrawRange::Empty, pixel_info: None, last_diff: Vec::new(), keybinds }
   }
@@ -104,7 +106,7 @@ impl Component for App {
       },
       Self::Message::PixelClicked(x, y) => {
         self.show_pixel_info = true;
-        let pixel_color = self.current_bmp.as_ref().unwrap().clone().get_color_of_px(x as usize, y as usize).unwrap();
+        let pixel_color = self.current_bmp.as_ref().unwrap().clone().get_color_of_pixel(x as usize, y as usize).unwrap();
         self.pixel_info = Some(PixelInfo {
           color: pixel_color,
           coords: [x, y],
@@ -180,6 +182,15 @@ impl Component for App {
           self.current_bmp = Some(current_bmp);
           self.should_redraw = true;
           true
+        } else if filter_type == "rotate" {
+          let mut current_bmp = self.current_bmp.as_ref().unwrap().clone();
+          let dib_header = current_bmp.get_dib_header().unwrap();
+          let center_pixel: [u16; 2] = [(f64::from(dib_header.width)/2.0).round() as u16, (f64::from(dib_header.height.abs())/2.0).round() as u16];
+          current_bmp.rotate(90.0, Some(center_pixel)).unwrap();
+          self.last_diff.push(BMP::diff(&self.current_bmp.as_ref().unwrap(), &current_bmp).unwrap());
+          self.current_bmp = Some(current_bmp);
+          self.should_redraw = true;
+          true
         } else {
           false
         }
@@ -222,6 +233,13 @@ impl Component for App {
           },
           ToolsTypes::Box => {
             current_bmp.box_blur(blur_radius).unwrap();
+            self.last_diff.push(BMP::diff(&self.current_bmp.as_ref().unwrap(), &current_bmp).unwrap());
+            self.current_bmp = Some(current_bmp);
+            self.should_redraw = true;
+            true
+          },
+          ToolsTypes::Median => {
+            current_bmp.median_filter(blur_radius).unwrap();
             self.last_diff.push(BMP::diff(&self.current_bmp.as_ref().unwrap(), &current_bmp).unwrap());
             self.current_bmp = Some(current_bmp);
             self.should_redraw = true;

@@ -62,6 +62,10 @@ impl Component for PixelActions {
       link.send_message(Self::Message::Hide);
     }
 
+    fn input_to_color(input: String) -> Vec<u8> {
+      return input.replace("(", "").replace(")", "").replace(" ", "").split(",").map(|value| value.parse::<u8>().unwrap()).collect();
+    }
+
     if ctx.props().pixel_info.is_some() {
       let pc_input_ref = NodeRef::default();
       let pixel_info = ctx.props().pixel_info.as_ref().unwrap();
@@ -75,7 +79,7 @@ impl Component for PixelActions {
         ctx.link().callback(move |_| {
           //get new pixel color
           let pc_input: HtmlInputElement = pc_input_ref2.cast().unwrap();
-          let new_color_vec: Vec<u8> = pc_input.value().replace("(", "").replace(")", "").split(", ").map(|value| value.parse::<u8>().unwrap()).collect();
+          let new_color_vec: Vec<u8> = input_to_color(pc_input.value());
           let new_color: [u8; 4] = [new_color_vec[0], new_color_vec[1], new_color_vec[2], new_color_vec[3]];
           Self::Message::ChangePixel(new_color)
         })

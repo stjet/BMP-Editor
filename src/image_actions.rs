@@ -119,9 +119,9 @@ impl Component for ImageActions {
           pressed_key = "ctrl+".to_owned()+&pressed_key;
         }
         let bind = keybinds.get(&pressed_key);
-        log!(pressed_key);
+        //log!(pressed_key);
         if bind.is_some() {
-          let tools_vec: Vec<ToolsTypes> = vec![ToolsTypes::NoneSelected, ToolsTypes::ClickFill, ToolsTypes::BucketFill, ToolsTypes::Line, ToolsTypes::Rect, ToolsTypes::Ellipse, ToolsTypes::Invert, ToolsTypes::Greyscale, ToolsTypes::Gaussian, ToolsTypes::Box];
+          let tools_vec: Vec<ToolsTypes> = vec![ToolsTypes::NoneSelected, ToolsTypes::ClickFill, ToolsTypes::BucketFill, ToolsTypes::Invert, ToolsTypes::Line, ToolsTypes::Rect, ToolsTypes::Ellipse, ToolsTypes::Greyscale, ToolsTypes::Gaussian, ToolsTypes::Box, ToolsTypes::Median, ToolsTypes::Rotate];
           let filters_select: HtmlSelectElement = filters_ref2.cast().unwrap();
           let shapes_select: HtmlSelectElement = shapes_ref2.cast().unwrap();
           let fills_select: HtmlSelectElement = fills_ref2.cast().unwrap();
@@ -161,8 +161,7 @@ impl Component for ImageActions {
         }
         None
       })
-    };
-
+    }; 
     let keybinds_listener = Some(EventListener::new(&document(), "keydown", move |e| keybinds_callback.emit(e.clone())));
     link.send_message(Self::Message::SetKeybindsListener(keybinds_listener));
 
@@ -197,6 +196,12 @@ impl Component for ImageActions {
         },
         "box" => {
           tool_type = ToolsTypes::Box;
+        },
+        "median" => {
+          tool_type = ToolsTypes::Median;
+        },
+        "rotate" => {
+          tool_type = ToolsTypes::Rotate;
         },
         _ => {
           tool_type = ToolsTypes::NoneSelected;
@@ -289,6 +294,7 @@ impl Component for ImageActions {
           <option value={"none-selected"} selected={true}>{ "-- Fills --" }</option>
           <option value={"click-fill"}>{ "Click Fill" }</option>
           <option value={"bucket-fill"}>{ "Bucket Fill" }</option>
+          <option value={"invert"}>{ "Invert" }</option>
         </select>
         <select ref={shapes_ref} class={"image-actions"} onchange={shapes}>
           <option value={"none-selected"} selected={true}>{ "-- Shapes --" }</option>
@@ -298,10 +304,11 @@ impl Component for ImageActions {
         </select>
         <select ref={filters_ref} class={"image-actions"} onchange={filters}>
           <option value={"none-selected"} selected={true}>{ "-- Filters --" }</option>
-          <option value={"invert"}>{ "Invert" }</option>
           <option value={"greyscale"}>{ "Greyscale" }</option>
           <option value={"gaussian"}>{ "Gaussian Blur" }</option>
           <option value={"box"}>{ "Box Blur" }</option>
+          <option value={"median"}>{ "Median Filter" }</option>
+          <option value={"rotate"}>{ "Rotate" }</option>
         </select>
         <button onclick={undo} class={"image-actions"}>{ "Undo" }</button>
         <button onclick={download} class={"image-actions"}>{ "Download" }</button>

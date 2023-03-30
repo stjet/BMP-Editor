@@ -1,7 +1,8 @@
 <!DOCTYPE html><html><head>
     <meta charset="utf-8">
     <title>BMP Editor</title>
-    <meta name="viewport" content="width=device-width">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
     <style>
       * {
         font-family: Consolas, "Lucida Console", Monaco, monospace;
@@ -71,17 +72,25 @@
         .mobile-only {
           display: block;
         }
+        .shortcut-tip {
+          display: none;
+        }
         #bottom-links {
           display: none;
         }
       }
     </style>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register("./offline-sw.js").then(() => console.log("Successfully registered SW"));
+      }
+    </script>
   
-<link rel="preload" href="/bmp-editor-4b3f757320b6910a_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
-<link rel="modulepreload" href="/bmp-editor-4b3f757320b6910a.js"></head>
+<link rel="preload" href="/bmp-editor_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
+<link rel="modulepreload" href="/bmp-editor.js"></head>
   <body>
   
-<script type="module">import init from '/bmp-editor-4b3f757320b6910a.js';init('/bmp-editor-4b3f757320b6910a_bg.wasm');</script><script>(function () {
+<script type="module">import init from '/bmp-editor.js';init('/bmp-editor_bg.wasm');</script><script>(function () {
     var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     var url = protocol + '//' + window.location.host + '/_trunk/ws';
     var poll_interval = 5000;

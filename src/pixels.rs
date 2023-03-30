@@ -22,9 +22,6 @@ impl PixelRedrawRange {
       }
     }
   }
-  fn is_not_empty(&self) -> bool {
-    !self.is_empty()
-  }
 }
 
 #[derive(PartialEq, Properties)]
@@ -91,30 +88,30 @@ impl Component for Pixels {
         let canvas: Option<HtmlCanvasElement> = canvas_ref_top.cast();
         if canvas.is_some() {
           let dib_header = &current_bmp.get_dib_header().unwrap();
-          let width = dib_header.width;
-          let height = dib_header.height.abs() as u32;
+          let width: u32 = dib_header.width;
+          let height: u32 = dib_header.height.unsigned_abs();
           let pixel_wh;
           if height > width {
-            pixel_wh = (650 as f64/height as f64).floor() as i32;
+            pixel_wh = (650.0/f64::from(height)).floor() as i32;
           } else {
-            pixel_wh = (650 as f64/width as f64).floor() as i32;
+            pixel_wh = (650.0/f64::from(width)).floor() as i32;
           }
-          let x = (e.offset_x() as f64/pixel_wh as f64).floor() as i32;
-          let y = (e.offset_y() as f64/pixel_wh as f64).floor() as i32;
+          let x = (f64::from(e.offset_x())/f64::from(pixel_wh)).floor() as i32;
+          let y = (f64::from(e.offset_y())/f64::from(pixel_wh)).floor() as i32;
           if x as u32 >= width || y as u32 >= height {
             return;
           }
           let canvas: HtmlCanvasElement = canvas.unwrap();
           let context: CanvasRenderingContext2d = canvas.get_context("2d").unwrap().unwrap().dyn_into().unwrap();
-          context.clear_rect(0 as f64, 0 as f64, 650 as f64, 650 as f64);
+          context.clear_rect(0.0, 0.0, 650.0, 650.0);
           let pixel_path = Path2d::new().unwrap();
           let top_left = [pixel_wh*x, pixel_wh*y];
           let bottom_right = [pixel_wh*(x+1), pixel_wh*(y+1)];
-          pixel_path.move_to(top_left[0] as f64, top_left[1] as f64);
-          pixel_path.line_to(bottom_right[0] as f64, top_left[1] as f64);
-          pixel_path.line_to(bottom_right[0] as f64, bottom_right[1] as f64);
-          pixel_path.line_to(top_left[0] as f64, bottom_right[1] as f64);
-          pixel_path.line_to(top_left[0] as f64, top_left[1] as f64);
+          pixel_path.move_to(f64::from(top_left[0]), f64::from(top_left[1]));
+          pixel_path.line_to(f64::from(bottom_right[0]), f64::from(top_left[1]));
+          pixel_path.line_to(f64::from(bottom_right[0]), f64::from(bottom_right[1]));
+          pixel_path.line_to(f64::from(top_left[0]), f64::from(bottom_right[1]));
+          pixel_path.line_to(f64::from(top_left[0]), f64::from(top_left[1]));
           context.set_fill_style(&JsValue::from("rgba(255, 255, 230, 0.5)".to_string()));
           context.fill_with_path_2d(&pixel_path);
         }
@@ -129,7 +126,7 @@ impl Component for Pixels {
         if canvas.is_some() {
           let canvas: HtmlCanvasElement = canvas.unwrap();
           let context: CanvasRenderingContext2d = canvas.get_context("2d").unwrap().unwrap().dyn_into().unwrap();
-          context.clear_rect(0 as f64, 0 as f64, 650 as f64, 650 as f64);
+          context.clear_rect(0.0, 0.0, 650.0, 650.0);
         }
       });
 
@@ -141,17 +138,17 @@ impl Component for Pixels {
         let current_bmp2 = ctx.props().current_bmp.clone().unwrap();
         ctx.link().batch_callback(move |e: MouseEvent| {
           let dib_header = &current_bmp2.get_dib_header().unwrap();
-          let width = dib_header.width;
-          let height = dib_header.height.abs() as u32;
+          let width: u32 = dib_header.width;
+          let height: u32 = dib_header.height.unsigned_abs();
           let pixel_wh;
           if height > width {
-            pixel_wh = (650 as f64/height as f64).floor() as i32;
+            pixel_wh = (650.0/f64::from(height)).floor() as i32;
           } else {
-            pixel_wh = (650 as f64/width as f64).floor() as i32;
+            pixel_wh = (650.0/f64::from(width)).floor() as i32;
           }
-          let x = (e.offset_x() as f64/pixel_wh as f64).floor() as u16;
-          let y = (e.offset_y() as f64/pixel_wh as f64).floor() as u16;
-          if x as u32 >= width || y as u32 >= height {
+          let x = (f64::from(e.offset_x())/f64::from(pixel_wh)).floor() as u16;
+          let y = (f64::from(e.offset_y())/f64::from(pixel_wh)).floor() as u16;
+          if u32::from(x) >= width || u32::from(y) >= height {
             return None;
           }
           return Some(Self::Message::SendClick([x, y]));
@@ -182,18 +179,18 @@ impl Component for Pixels {
       //clear canvas
       let unwrapped_bmp = ctx.props().current_bmp.as_ref().unwrap();
       let dib_header = unwrapped_bmp.get_dib_header().unwrap();
-      let width = dib_header.width;
-      let height = dib_header.height.abs() as u32;
+      let width: u32 = dib_header.width;
+      let height: u32 = dib_header.height.unsigned_abs();
       let pixel_wh;
       if height > width {
-        pixel_wh = (650 as f64/height as f64).floor() as u32;
+        pixel_wh = (650.0/f64::from(height)).floor() as u32;
       } else {
-        pixel_wh = (650 as f64/width as f64).floor() as u32;
+        pixel_wh = (650.0/f64::from(width)).floor() as u32;
       }
       let pixel_data = unwrapped_bmp.get_pixel_data().unwrap();
       let only_redraw_coords = ctx.props().only_redraw_coords;
       if only_redraw_coords.is_empty() {
-        context.clear_rect(0 as f64, 0 as f64, 650 as f64, 650 as f64);
+        context.clear_rect(0.0, 0.0, 650.0, 650.0);
         for y in 0..height {
           for x in 0..width {
             //ctx.props().only_redraw_coords.
@@ -205,8 +202,8 @@ impl Component for Pixels {
             pixel_path.line_to(bottom_right[0] as f64, bottom_right[1] as f64);
             pixel_path.line_to(top_left[0] as f64, bottom_right[1] as f64);
             pixel_path.line_to(top_left[0] as f64, top_left[1] as f64);*/
-            let color = unwrapped_bmp.get_color_of_px_efficient(x as usize, y as usize, &dib_header, &pixel_data).unwrap();
-            context.set_fill_style(&JsValue::from(format!("rgba({},{},{},{})", color[0], color[1], color[2], (color[3] as f64/255 as f64))));
+            let color = unwrapped_bmp.get_color_of_pixel_efficient(x as usize, y as usize, &dib_header, &pixel_data).unwrap();
+            context.set_fill_style(&JsValue::from(format!("rgba({},{},{},{})", color[0], color[1], color[2], (f64::from(color[3])/255.0))));
             context.fill_rect(top_left[0].into(), top_left[1].into(), pixel_wh.into(), pixel_wh.into());
             //context.fill_with_path_2d(&pixel_path);
           }
@@ -218,17 +215,17 @@ impl Component for Pixels {
           for y_add in 0..(rect_coords[1][1]-rect_coords[0][1]+1) {
             for x_add in 0..(rect_coords[1][0]-rect_coords[0][0]+1) {
               let coord: [u16; 2] = [rect_coords[0][0]+x_add, rect_coords[0][1]+y_add];
-              let top_left = [pixel_wh*coord[0] as u32, pixel_wh*coord[1] as u32];
-              let color = unwrapped_bmp.get_color_of_px_efficient(coord[0] as usize, coord[1] as usize, &dib_header, &pixel_data).unwrap();
-              context.set_fill_style(&JsValue::from(format!("rgba({},{},{},{})", color[0], color[1], color[2], (color[3] as f64/255 as f64))));
+              let top_left = [pixel_wh*u32::from(coord[0]), pixel_wh*u32::from(coord[1])];
+              let color = unwrapped_bmp.get_color_of_pixel_efficient(coord[0] as usize, coord[1] as usize, &dib_header, &pixel_data).unwrap();
+              context.set_fill_style(&JsValue::from(format!("rgba({},{},{},{})", color[0], color[1], color[2], (f64::from(color[3])/255.0))));
               context.fill_rect(top_left[0].into(), top_left[1].into(), pixel_wh.into(), pixel_wh.into());
             }
           }
         } else if let PixelRedrawRange::Point(coord) = only_redraw_coords {
           log!("redrawing only point portion");
-          let top_left = [pixel_wh*coord[0] as u32, pixel_wh*coord[1] as u32];
-          let color = unwrapped_bmp.get_color_of_px_efficient(coord[0] as usize, coord[1] as usize, &dib_header, &pixel_data).unwrap();
-          context.set_fill_style(&JsValue::from(format!("rgba({},{},{},{})", color[0], color[1], color[2], (color[3] as f64/255 as f64))));
+          let top_left = [pixel_wh*u32::from(coord[0]), pixel_wh*u32::from(coord[1])];
+          let color = unwrapped_bmp.get_color_of_pixel_efficient(coord[0] as usize, coord[1] as usize, &dib_header, &pixel_data).unwrap();
+          context.set_fill_style(&JsValue::from(format!("rgba({},{},{},{})", color[0], color[1], color[2], (f64::from(color[3])/255.0))));
           context.fill_rect(top_left[0].into(), top_left[1].into(), pixel_wh.into(), pixel_wh.into());
         }
       }
