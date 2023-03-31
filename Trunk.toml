@@ -4,3 +4,8 @@ release = true
 dist = "dist"
 public_url = "/"
 filehash = false
+
+[serve]
+port = 8080
+#change to `false` if in dev mode, but for release we want `true`
+no_autoreload = true
